@@ -1,0 +1,6 @@
+{
+  "name": "MadeBy作品集站",
+  "description": "MadeBy 极客硬核新粗野主义个人作品集主站与多维数据管理系统，采用 React、Supabase、Cloudinary 与 Netlify 构建。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
