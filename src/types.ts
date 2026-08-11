@@ -39,15 +39,15 @@ export interface TechSkill {
 export interface Profile {
   name: string;
   alias: string;
-  title: string;
-  subtitle: string;
+  title: Record<LanguageCode, string> | string;
+  subtitle: Record<LanguageCode, string> | string;
   avatarUrl: string;
   logoUrl?: string;
   iconUrl?: string;
   siteTitle?: string;
-  speechBubbleText: string;
+  speechBubbleText: Record<LanguageCode, string> | string;
   bioLines: Record<LanguageCode, string[]> | string[];
-  location: string;
+  location: Record<LanguageCode, string> | string;
   statusText: string;
   skills: string[];
   blogUrl: string;
@@ -82,6 +82,16 @@ export interface MediaItem {
   size?: string;
 }
 
+export interface Experience {
+  id: string;
+  company: Record<LanguageCode, string> | string;
+  role: Record<LanguageCode, string> | string;
+  startDate: string;
+  endDate: string; // can be "Present" or similar, will keep as string
+  description: Record<LanguageCode, string> | string;
+  technologies?: string[];
+}
+
 export interface SiteData {
   profile: Profile;
   socialLinks: SocialLink[];
@@ -89,7 +99,8 @@ export interface SiteData {
   projects: Project[];
   techSkills?: TechSkill[];
   mediaItems?: MediaItem[];
+  experiences?: Experience[];
   systemConfig?: SystemConfig;
 }
 
-export type AdminTab = 'profile' | 'projects' | 'skills' | 'links' | 'media' | 'analytics' | 'system' | 'i18n';
+export type AdminTab = 'profile' | 'projects' | 'skills' | 'experience' | 'links' | 'media' | 'analytics' | 'system' | 'i18n';

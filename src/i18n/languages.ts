@@ -297,6 +297,8 @@ export interface TranslationDictionary {
   toastMediaDeleted: string;
   toastDataReset: string;
   toastTranslationsReset: string;
+  toastThemeDark: string;
+  toastThemeLight: string;
 
   // Newly Refactored Toast & Tag Keys
   pdfExportSuccessToast: string;

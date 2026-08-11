@@ -4,7 +4,7 @@ import { MapPin, Zap, ExternalLink, Sparkles, MessageSquare, Code2, ArrowUpRight
 import { motion } from 'motion/react';
 
 export const MangaHero: React.FC = () => {
-  const { data, t, language, getProfileBioLines } = useApp();
+  const { data, t, language, getProfileBioLines, getProfileField } = useApp();
   const { profile } = data;
 
   const containerVariants = {
@@ -88,7 +88,7 @@ export const MangaHero: React.FC = () => {
               className="mt-6 flex items-center gap-1.5 bg-zinc-100 dark:bg-slate-800 border-2 border-black dark:border-zinc-300 px-3 py-1 rounded-full text-xs font-bold text-black dark:text-zinc-200 shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] cursor-default"
             >
               <MapPin className="w-3.5 h-3.5 text-rose-500 fill-rose-100" />
-              <span>{profile.location}</span>
+              <span>{getProfileField(profile.location)}</span>
             </motion.div>
 
           </motion.div>
@@ -108,7 +108,7 @@ export const MangaHero: React.FC = () => {
 
               <p className="font-black text-sm md:text-base text-black dark:text-amber-300 flex items-center gap-2 italic">
                 <MessageSquare className="w-5 h-5 text-black dark:text-amber-300 shrink-0 stroke-[2.5]" />
-                <span>{profile.speechBubbleText}</span>
+                <span>{getProfileField(profile.speechBubbleText)}</span>
               </p>
             </motion.div>
 
@@ -126,7 +126,7 @@ export const MangaHero: React.FC = () => {
                 </motion.span>
               </div>
               <p className="text-sm md:text-base font-extrabold text-zinc-800 dark:text-zinc-200">
-                {profile.title}
+                {getProfileField(profile.title)}
               </p>
             </motion.div>
 

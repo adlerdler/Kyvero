@@ -31,6 +31,12 @@ export const exportPortfolioToPDF = async (data: SiteData, language: string) => 
     day: 'numeric'
   });
 
+  const getLocal = (field: any, lang: string) => {
+    if (!field) return '';
+    if (typeof field === 'string') return field;
+    return field[lang] || field['zh-CN'] || field['en'] || Object.values(field)[0] || '';
+  };
+
   // Render HTML structure
   container.innerHTML = `
     <div style="border: 3px solid #000000; padding: 24px; border-radius: 12px; background-color: #ffffff;">
@@ -41,7 +47,7 @@ export const exportPortfolioToPDF = async (data: SiteData, language: string) => 
             ${data.profile.name || 'Kaito Lin'}
           </h1>
           <p style="font-size: 14px; font-weight: 700; color: #4b5563; margin: 4px 0 0 0;">
-            ${data.profile.title || 'Fullstack Engineer'}
+            ${getLocal(data.profile.title, language) || 'Fullstack Engineer'}
           </p>
           <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
             ${(data.profile.skills || [])
@@ -89,12 +95,7 @@ export const exportPortfolioToPDF = async (data: SiteData, language: string) => 
                 ${data.techSkills
                   .map(
                     skill => {
-                      const taglineStr = (() => {
-                        if (!skill.tagline) return '';
-                        if (typeof skill.tagline === 'string') return skill.tagline;
-                        const obj = skill.tagline as Record<LanguageCode, string>;
-                        return obj[langKey] || obj['zh-CN'] || obj['en'] || Object.values(obj)[0] || '';
-                      })();
+                      const taglineStr = getLocal(skill.tagline, langKey);
                       return `
                   <div style="border: 1px solid #000000; border-radius: 6px; padding: 6px 10px; background-color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -131,7 +132,7 @@ export const exportPortfolioToPDF = async (data: SiteData, language: string) => 
                     #0${index + 1}
                   </span>
                   <h3 style="font-size: 13px; font-weight: 900; margin: 0; color: #000000;">
-                    ${typeof project.title === 'string' ? project.title : project.title[langKey] || project.title['zh-CN']}
+                    ${getLocal(project.title, langKey)}
                   </h3>
                   ${
                     project.featured
@@ -140,12 +141,12 @@ export const exportPortfolioToPDF = async (data: SiteData, language: string) => 
                   }
                 </div>
                 <span style="background-color: #e2e8f0; border: 1px solid #000000; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 4px;">
-                  ${typeof project.category === 'string' ? project.category : project.category[langKey] || project.category['zh-CN']}
+                  ${getLocal(project.category, langKey)}
                 </span>
               </div>
 
               <p style="font-size: 11px; font-weight: 700; color: #374151; margin: 4px 0 6px 0; line-height: 1.4;">
-                ${typeof project.summary === 'string' ? project.summary : project.summary[langKey] || project.summary['zh-CN']}
+                ${getLocal(project.summary, langKey)}
               </p>
 
               ${

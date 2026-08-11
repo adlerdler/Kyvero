@@ -278,6 +278,8 @@ export const ja: TranslationDictionary = {
   toastMediaDeleted: '🗑️ メディアアイテムを削除しました',
   toastDataReset: '🔄 初期データに復元しました',
   toastTranslationsReset: '🔄 翻訳設定を初期化しました',
+  toastThemeDark: '🌙 ダークアニメモードに切り替えました',
+  toastThemeLight: '☀️ ライトマンガモードに切り替えました',
 
   // Newly Refactored Toast & Tag Keys
   pdfExportSuccessToast: '🎉 ポートフォリオPDFが正常に生成され、ダウンロードが開始されました！',

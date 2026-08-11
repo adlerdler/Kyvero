@@ -278,6 +278,8 @@ export const en: TranslationDictionary = {
   toastMediaDeleted: '🗑️ Image removed from media library',
   toastDataReset: '🔄 Data restored to official defaults',
   toastTranslationsReset: '🔄 Translations reset to system defaults',
+  toastThemeDark: '🌙 Switched to Dark Anime Mode',
+  toastThemeLight: '☀️ Switched to Light Manga Mode',
 
   // Newly Refactored Toast & Tag Keys
   pdfExportSuccessToast: '🎉 Portfolio PDF successfully generated and download started!',

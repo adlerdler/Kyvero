@@ -11,12 +11,14 @@ import {
   SocialLink,
   FooterLink,
   TechSkill,
+  Experience,
   SystemConfig
 } from '../types';
 import {
   User,
   FolderGit2,
   Share2,
+  Briefcase,
   Settings,
   Plus,
   Trash2,
@@ -105,6 +107,9 @@ export const AdminDashboard: React.FC = () => {
     addTechSkill,
     updateTechSkill,
     deleteTechSkill,
+    addExperience,
+    updateExperience,
+    deleteExperience,
     resetToDefaultData,
     showToast,
     getProjectTitle,
@@ -406,6 +411,25 @@ export const AdminDashboard: React.FC = () => {
     featured: false
   });
 
+  // Experience Form State
+  const [editingExp, setEditingExp] = useState<Experience | null>(null);
+  const [isAddingExp, setIsAddingExp] = useState(false);
+  const [expForm, setExpForm] = useState<{
+    company: Record<LanguageCode, string>;
+    role: Record<LanguageCode, string>;
+    startDate: string;
+    endDate: string;
+    description: Record<LanguageCode, string>;
+    technologies: string;
+  }>({
+    company: { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' },
+    role: { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' },
+    startDate: '',
+    endDate: '',
+    description: { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' },
+    technologies: ''
+  });
+
   // Social Link Form State
   const [editingLink, setEditingLink] = useState<SocialLink | null>(null);
   const [isAddingLink, setIsAddingLink] = useState(false);
@@ -502,6 +526,55 @@ export const AdminDashboard: React.FC = () => {
       category: getProjectCategory(p),
       tags: p.tags.join(', '),
       featured: p.featured
+    });
+  };
+
+  // Experience Submit
+  const handleExpSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingExp) {
+      updateExperience({
+        ...editingExp,
+        company: expForm.company,
+        role: expForm.role,
+        startDate: expForm.startDate,
+        endDate: expForm.endDate,
+        description: expForm.description,
+        technologies: expForm.technologies ? expForm.technologies.split(',').map(t => t.trim()).filter(Boolean) : []
+      });
+      setEditingExp(null);
+    } else {
+      addExperience({
+        company: expForm.company,
+        role: expForm.role,
+        startDate: expForm.startDate,
+        endDate: expForm.endDate,
+        description: expForm.description,
+        technologies: expForm.technologies ? expForm.technologies.split(',').map(t => t.trim()).filter(Boolean) : []
+      });
+    }
+
+    setIsAddingExp(false);
+    setExpForm({
+      company: { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' },
+      role: { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' },
+      startDate: '',
+      endDate: '',
+      description: { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' },
+      technologies: ''
+    });
+  };
+
+  const startEditExp = (e: Experience) => {
+    setEditingExp(e);
+    setIsAddingExp(true);
+    setExpForm({
+      company: typeof e.company === 'string' ? { 'zh-CN': e.company, 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' } : e.company,
+      role: typeof e.role === 'string' ? { 'zh-CN': e.role, 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' } : e.role,
+      startDate: e.startDate,
+      endDate: e.endDate,
+      description: typeof e.description === 'string' ? { 'zh-CN': e.description, 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' } : e.description,
+      technologies: e.technologies ? e.technologies.join(', ') : ''
     });
   };
 
@@ -706,6 +779,19 @@ export const AdminDashboard: React.FC = () => {
 
         <motion.button
           whileTap={{ scale: 0.95 }}
+          onClick={() => setActiveTab('experience')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+            activeTab === 'experience'
+              ? 'bg-black dark:bg-amber-400 text-yellow-300 dark:text-black border-2 border-black shadow-[3px_3px_0px_0px_#000]'
+              : 'bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black dark:border-zinc-300 shadow-[2px_2px_0px_0px_#000] hover:bg-amber-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Briefcase className="w-4 h-4" />
+          <span>Experience ({(data.experiences || []).length})</span>
+        </motion.button>
+
+        <motion.button
+          whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('links')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
             activeTab === 'links'
@@ -803,25 +889,89 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-black uppercase mb-1">
-                    {t.titleLabel}
+                  <label className="block text-xs font-black text-black uppercase mb-1 flex items-center justify-between">
+                    <span>{t.titleLabel}</span>
+                    <span className="text-[10px] text-zinc-500 font-mono font-bold">({language})</span>
                   </label>
                   <input
                     type="text"
-                    value={profileForm.title}
-                    onChange={e => setProfileForm({ ...profileForm, title: e.target.value })}
+                    value={
+                      typeof profileForm.title === 'string'
+                        ? profileForm.title
+                        : ((profileForm.title as Record<LanguageCode, string>)?.[language] ?? '')
+                    }
+                    onChange={e => {
+                      const currentObj = typeof profileForm.title === 'object' && profileForm.title !== null
+                        ? (profileForm.title as Record<LanguageCode, string>)
+                        : { 'zh-CN': String(profileForm.title || '') };
+                      setProfileForm({ ...profileForm, title: { ...currentObj, [language]: e.target.value } });
+                    }}
                     className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] focus:bg-white"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-black uppercase mb-1">
-                    {t.locationLabel}
+                  <label className="block text-xs font-black text-black uppercase mb-1 flex items-center justify-between">
+                    <span>Subtitle</span>
+                    <span className="text-[10px] text-zinc-500 font-mono font-bold">({language})</span>
                   </label>
                   <input
                     type="text"
-                    value={profileForm.location}
-                    onChange={e => setProfileForm({ ...profileForm, location: e.target.value })}
+                    value={
+                      typeof profileForm.subtitle === 'string'
+                        ? profileForm.subtitle
+                        : ((profileForm.subtitle as Record<LanguageCode, string>)?.[language] ?? '')
+                    }
+                    onChange={e => {
+                      const currentObj = typeof profileForm.subtitle === 'object' && profileForm.subtitle !== null
+                        ? (profileForm.subtitle as Record<LanguageCode, string>)
+                        : { 'zh-CN': String(profileForm.subtitle || '') };
+                      setProfileForm({ ...profileForm, subtitle: { ...currentObj, [language]: e.target.value } });
+                    }}
+                    className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-black uppercase mb-1 flex items-center justify-between">
+                    <span>Speech Bubble Text</span>
+                    <span className="text-[10px] text-zinc-500 font-mono font-bold">({language})</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={
+                      typeof profileForm.speechBubbleText === 'string'
+                        ? profileForm.speechBubbleText
+                        : ((profileForm.speechBubbleText as Record<LanguageCode, string>)?.[language] ?? '')
+                    }
+                    onChange={e => {
+                      const currentObj = typeof profileForm.speechBubbleText === 'object' && profileForm.speechBubbleText !== null
+                        ? (profileForm.speechBubbleText as Record<LanguageCode, string>)
+                        : { 'zh-CN': String(profileForm.speechBubbleText || '') };
+                      setProfileForm({ ...profileForm, speechBubbleText: { ...currentObj, [language]: e.target.value } });
+                    }}
+                    className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-black uppercase mb-1 flex items-center justify-between">
+                    <span>{t.locationLabel}</span>
+                    <span className="text-[10px] text-zinc-500 font-mono font-bold">({language})</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={
+                      typeof profileForm.location === 'string'
+                        ? profileForm.location
+                        : ((profileForm.location as Record<LanguageCode, string>)?.[language] ?? '')
+                    }
+                    onChange={e => {
+                      const currentObj = typeof profileForm.location === 'object' && profileForm.location !== null
+                        ? (profileForm.location as Record<LanguageCode, string>)
+                        : { 'zh-CN': String(profileForm.location || '') };
+                      setProfileForm({ ...profileForm, location: { ...currentObj, [language]: e.target.value } });
+                    }}
                     className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] focus:bg-white"
                   />
                 </div>
@@ -1419,7 +1569,7 @@ export const AdminDashboard: React.FC = () => {
                               value={
                                 typeof skillForm.tagline === 'string'
                                   ? skillForm.tagline
-                                  : ((skillForm.tagline as Record<LanguageCode, string>)?.[language] || '')
+                                  : ((skillForm.tagline as Record<LanguageCode, string>)?.[language] ?? '')
                               }
                               onChange={e => {
                                 const val = e.target.value;
@@ -1625,6 +1775,176 @@ export const AdminDashboard: React.FC = () => {
                 })}
               </div>
 
+            </div>
+          )}
+
+          {/* 3.5 Experience Management Tab */}
+          {activeTab === 'experience' && (
+            <div className="flex flex-col gap-6">
+              
+              <div className="flex items-center justify-between bg-zinc-50 border-2 border-black p-3 rounded-2xl shadow-[3px_3px_0px_0px_#000]">
+                <h4 className="font-black text-sm text-black">
+                  Experiences ({(data.experiences || []).length})
+                </h4>
+                <button
+                  onClick={() => {
+                    setIsAddingExp(true);
+                    setEditingExp(null);
+                    setExpForm({
+                      company: { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' },
+                      role: { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' },
+                      startDate: '',
+                      endDate: '',
+                      description: { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' },
+                      technologies: ''
+                    });
+                  }}
+                  className="bg-black text-white px-3 py-1.5 border-2 border-black rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#f43f5e] hover:translate-y-[-2px] hover:shadow-[3px_3px_0px_0px_#f43f5e] transition-all flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add
+                </button>
+              </div>
+
+              {isAddingExp && (
+                <form onSubmit={handleExpSubmit} className="bg-white border-2 border-black p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex flex-col gap-5">
+                  <div className="flex items-center justify-between border-b-2 border-black pb-3">
+                    <h4 className="font-black text-base text-black flex items-center gap-2">
+                      <Briefcase className="w-4 h-4 text-rose-500" />
+                      {editingExp ? 'Edit Experience' : 'Add Experience'}
+                    </h4>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-black text-black uppercase mb-1 flex justify-between">
+                        <span>Company</span>
+                        <span className="text-[10px] text-zinc-500 font-mono font-bold">({language})</span>
+                      </label>
+                      <input
+                        required
+                        type="text"
+                        value={expForm.company[language] || ''}
+                        onChange={e => setExpForm({ ...expForm, company: { ...expForm.company, [language]: e.target.value } })}
+                        className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black text-black uppercase mb-1 flex justify-between">
+                        <span>Role</span>
+                        <span className="text-[10px] text-zinc-500 font-mono font-bold">({language})</span>
+                      </label>
+                      <input
+                        required
+                        type="text"
+                        value={expForm.role[language] || ''}
+                        onChange={e => setExpForm({ ...expForm, role: { ...expForm.role, [language]: e.target.value } })}
+                        className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black text-black uppercase mb-1">Start Date</label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="e.g. 2022-01"
+                        value={expForm.startDate}
+                        onChange={e => setExpForm({ ...expForm, startDate: e.target.value })}
+                        className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black text-black uppercase mb-1">End Date</label>
+                      <input
+                        required
+                        type="text"
+                        placeholder="e.g. Present"
+                        value={expForm.endDate}
+                        onChange={e => setExpForm({ ...expForm, endDate: e.target.value })}
+                        className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-black uppercase mb-1 flex justify-between">
+                      <span>Description</span>
+                      <span className="text-[10px] text-zinc-500 font-mono font-bold">({language})</span>
+                    </label>
+                    <textarea
+                      required
+                      rows={3}
+                      value={expForm.description[language] || ''}
+                      onChange={e => setExpForm({ ...expForm, description: { ...expForm.description, [language]: e.target.value } })}
+                      className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-black uppercase mb-1">Technologies (Comma separated)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. React, Node.js, Docker"
+                      value={expForm.technologies}
+                      onChange={e => setExpForm({ ...expForm, technologies: e.target.value })}
+                      className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddingExp(false);
+                        setEditingExp(null);
+                      }}
+                      className="bg-white border-2 border-black text-black px-4 py-2.5 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] hover:bg-zinc-100"
+                    >
+                      {t.cancel}
+                    </button>
+                    <button
+                      type="submit"
+                      className="bg-rose-500 border-2 border-black text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] hover:bg-rose-400"
+                    >
+                      {t.save}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <div className="grid grid-cols-1 gap-4">
+                {(data.experiences || []).map(exp => {
+                  const companyStr = typeof exp.company === 'string' ? exp.company : exp.company[language] || exp.company['zh-CN'] || '';
+                  const roleStr = typeof exp.role === 'string' ? exp.role : exp.role[language] || exp.role['zh-CN'] || '';
+                  return (
+                    <div key={exp.id} className="bg-white border-2 border-black rounded-2xl p-4 shadow-[4px_4px_0px_0px_#000] flex justify-between items-center group hover:bg-zinc-50">
+                      <div>
+                        <div className="font-black text-base text-black flex items-center gap-2">
+                          <Briefcase className="w-4 h-4 text-zinc-500" />
+                          {roleStr} <span className="text-rose-500">@</span> {companyStr}
+                        </div>
+                        <div className="text-xs font-bold text-zinc-600 mt-1 font-mono">
+                          {exp.startDate} - {exp.endDate}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => startEditExp(exp)}
+                          className="bg-white border-2 border-black p-2 rounded-xl hover:bg-amber-100 shadow-[2px_2px_0px_0px_#000]"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteExperience(exp.id)}
+                          className="bg-rose-100 text-rose-600 border-2 border-black p-2 rounded-xl hover:bg-rose-200 shadow-[2px_2px_0px_0px_#000]"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

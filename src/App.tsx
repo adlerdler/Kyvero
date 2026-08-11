@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { MangaHero } from './components/MangaHero';
 import { SkillProgressBar } from './components/SkillProgressBar';
+import { ExperienceTimeline } from './components/ExperienceTimeline';
 import { ProjectsGrid } from './components/ProjectsGrid';
 import { BlogSocialSection } from './components/BlogSocialSection';
 import { ProjectDetailModal } from './components/ProjectDetailModal';
@@ -25,7 +26,7 @@ function getFooterIcon(type: string, name?: string) {
 }
 
 function MainLayout() {
-  const { toastMessage, data, t, currentView, setCurrentView, isAdmin } = useApp();
+  const { toastMessage, data, t, currentView, setCurrentView, isAdmin, getProfileField } = useApp();
   const [isLoading, setIsLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<number>(0);
 
@@ -45,7 +46,8 @@ function MainLayout() {
     } else if (data?.profile?.siteTitle) {
       document.title = data.profile.siteTitle;
     } else if (data?.profile?.name) {
-      document.title = `${data.profile.name} - ${data.profile.title || 'Portfolio'}`;
+      const displayTitle = getProfileField(data.profile.title) || 'Portfolio';
+      document.title = `${data.profile.name} - ${displayTitle}`;
     }
 
     // Update site icon/favicon dynamically
@@ -137,6 +139,18 @@ function MainLayout() {
                   transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <SkillProgressBar />
+                </motion.div>
+              </section>
+
+              {/* SECTION 2.5: ExperienceTimeline */}
+              <section id="section-experience">
+                <motion.div
+                  initial={{ opacity: 0, y: 30, scale: 0.98 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  viewport={{ amount: 0.2, once: false }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <ExperienceTimeline />
                 </motion.div>
               </section>
 

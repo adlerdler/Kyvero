@@ -278,6 +278,8 @@ export const zhTW: TranslationDictionary = {
   toastMediaDeleted: '🗑️ 媒體項已從庫中移除',
   toastDataReset: '🔄 已恢復為官方初始數據',
   toastTranslationsReset: '🔄 已重置為系統預設翻譯配置',
+  toastThemeDark: '🌙 已切換至暗黑動漫風格 / Dark Anime Mode',
+  toastThemeLight: '☀️ 已切換至明亮畫風 / Light Manga Mode',
 
   // Newly Refactored Toast & Tag Keys
   pdfExportSuccessToast: '🎉 作品集 PDF 已成功產生並開始下載！',

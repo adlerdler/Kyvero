@@ -278,6 +278,8 @@ export const ko: TranslationDictionary = {
   toastMediaDeleted: '🗑️ 미디어 항목이 삭제되었습니다',
   toastDataReset: '🔄 기본 데이터로 복원되었습니다',
   toastTranslationsReset: '🔄 번역이 시스템 기본값으로 재설정되었습니다',
+  toastThemeDark: '🌙 다크 애니메이션 모드로 전환되었습니다',
+  toastThemeLight: '☀️ 라이트 망가 모드로 전환되었습니다',
 
   // Newly Refactored Toast & Tag Keys
   pdfExportSuccessToast: '🎉 포트폴리오 PDF가 성공적으로 생성되어 다운로드가 시작되었습니다!',

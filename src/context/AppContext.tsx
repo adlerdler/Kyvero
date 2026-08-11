@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { SiteData, LanguageCode, Project, Profile, SocialLink, FooterLink, TechSkill, MediaItem, SystemConfig } from '../types';
+import { SiteData, LanguageCode, Project, Profile, SocialLink, FooterLink, TechSkill, MediaItem, SystemConfig, Experience } from '../types';
 import { INITIAL_SITE_DATA } from '../data/initialData';
 import { DEFAULT_LANGUAGE, TRANSLATIONS, TranslationDictionary } from '../i18n/languages';
 
@@ -46,6 +46,9 @@ interface AppContextType {
   deleteTechSkill: (id: string) => void;
   addMediaItem: (item: Omit<MediaItem, 'id' | 'createdAt'>) => void;
   deleteMediaItem: (id: string) => void;
+  addExperience: (exp: Omit<Experience, 'id'>) => void;
+  updateExperience: (exp: Experience) => void;
+  deleteExperience: (id: string) => void;
   resetToDefaultData: () => void;
   customTranslations: Record<LanguageCode, Partial<TranslationDictionary>>;
   updateTranslationKey: (key: keyof TranslationDictionary, lang: LanguageCode, value: string) => void;
@@ -55,6 +58,7 @@ interface AppContextType {
   getProjectDescription: (p: Project) => string;
   getProjectCategory: (p: Project) => string;
   getProfileBioLines: (bio: Record<LanguageCode, string[]> | string[] | undefined, lang: LanguageCode) => string[];
+  getProfileField: (field: Record<LanguageCode, string> | string | undefined) => string;
   getSkillTagline: (tagline: Record<LanguageCode, string> | string | undefined, lang: LanguageCode) => string;
 }
 
@@ -101,6 +105,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (!parsed.mediaItems || !Array.isArray(parsed.mediaItems)) {
             parsed.mediaItems = INITIAL_SITE_DATA.mediaItems;
           }
+          if (!parsed.experiences || !Array.isArray(parsed.experiences)) {
+            parsed.experiences = INITIAL_SITE_DATA.experiences;
+          }
+          
+          const fieldsToMigrate = ['title', 'subtitle', 'location', 'speechBubbleText'] as const;
+          fieldsToMigrate.forEach(field => {
+            if (typeof parsed.profile[field] === 'string') {
+              const strVal = parsed.profile[field] as string;
+              const defaultObj = INITIAL_SITE_DATA.profile[field] as Record<LanguageCode, string>;
+              const defaultZhCn = defaultObj['zh-CN'];
+              
+              if (strVal === defaultZhCn || !strVal) {
+                parsed.profile[field] = defaultObj;
+              } else {
+                parsed.profile[field] = {
+                  'zh-CN': strVal,
+                  'zh-TW': '',
+                  'en': '',
+                  'ja': '',
+                  'ko': ''
+                };
+              }
+            }
+          });
+
           if (!parsed.profile.bioLines || Array.isArray(parsed.profile.bioLines)) {
             const oldArr = Array.isArray(parsed.profile.bioLines) ? parsed.profile.bioLines : null;
             parsed.profile.bioLines = {
@@ -209,7 +238,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const toggleTheme = () => {
     setThemeState(prev => {
       const nextTheme = prev === 'light' ? 'dark' : 'light';
-      showToast(nextTheme === 'dark' ? '🌙 已切换至暗黑动漫风格 / Dark Anime Mode' : '☀️ 已切换至明亮画风 / Light Manga Mode');
+      showToast(nextTheme === 'dark' ? getI18nStr('toastThemeDark') : getI18nStr('toastThemeLight'));
       return nextTheme;
     });
   };
@@ -463,6 +492,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(getI18nStr('toastMediaDeleted'));
   };
 
+  const addExperience = (expData: Omit<Experience, 'id'>) => {
+    const newExp: Experience = {
+      ...expData,
+      id: `exp-${Date.now()}`
+    };
+    setData(prev => ({
+      ...prev,
+      experiences: [newExp, ...(prev.experiences || [])]
+    }));
+    showToast(getI18nStr('toastProfileUpdated') || '经历已添加');
+  };
+
+  const updateExperience = (updatedExp: Experience) => {
+    setData(prev => ({
+      ...prev,
+      experiences: (prev.experiences || []).map(e => (e.id === updatedExp.id ? updatedExp : e))
+    }));
+    showToast(getI18nStr('toastProfileUpdated') || '经历已更新');
+  };
+
+  const deleteExperience = (id: string) => {
+    setData(prev => ({
+      ...prev,
+      experiences: (prev.experiences || []).filter(e => e.id !== id)
+    }));
+    showToast(getI18nStr('toastProfileUpdated') || '经历已删除');
+  };
+
   const resetToDefaultData = () => {
     setData(INITIAL_SITE_DATA);
     try {
@@ -529,6 +586,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const getProjectSummary = React.useCallback((p: Project) => getLocalizedText(p.summary, language), [language, getLocalizedText]);
   const getProjectDescription = React.useCallback((p: Project) => getLocalizedText(p.description, language), [language, getLocalizedText]);
   const getProjectCategory = React.useCallback((p: Project) => getLocalizedText(p.category, language), [language, getLocalizedText]);
+  const getProfileField = React.useCallback((field: Record<LanguageCode, string> | string | undefined) => getLocalizedText(field, language), [language, getLocalizedText]);
   const getProfileBioLines = React.useCallback((bio: Record<LanguageCode, string[]> | string[] | undefined, lang: LanguageCode): string[] => {
     if (!bio) return [];
     if (typeof bio === 'object' && !Array.isArray(bio) && bio !== null) {
@@ -545,39 +603,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   const getSkillTagline = React.useCallback((tagline: Record<LanguageCode, string> | string | undefined, lang: LanguageCode): string => {
-    if (!tagline) return '';
-    if (typeof tagline === 'string') return tagline;
-    
-    const zhCN = tagline['zh-CN'] || Object.values(tagline)[0] || '';
-    const val = tagline[lang];
-    
-    // If the value exists, is not empty, and is either not identical to zhCN OR we are actually requesting zh-CN, use it.
-    if (val && val.trim() !== '' && (lang === 'zh-CN' || val !== zhCN)) {
-      return val;
-    }
-
-    if (!zhCN) return '';
-
-    switch (lang) {
-      case 'zh-TW':
-        return zhCN.replace(/架构/g, '架構').replace(/高并发/g, '高併發').replace(/性能/g, '效能').replace(/优化/g, '優化').replace(/向量/g, '向量').replace(/组件/g, '組件');
-      case 'en':
-        if (zhCN.includes('组件') || zhCN.includes('架构')) return 'Component Architecture / High Performance / Scalable Design';
-        if (zhCN.includes('AI') || zhCN.includes('模型') || zhCN.includes('多模态') || zhCN.includes('智能体')) return 'AI Integration / Multimodal Inference / Smart Agents';
-        if (zhCN.includes('后端') || zhCN.includes('Server')) return 'Backend Systems / API Design / High Availability';
-        return 'Advanced Engineering / High Performance / Production Ready';
-      case 'ja':
-        if (zhCN.includes('组件') || zhCN.includes('架构')) return 'コンポーネントアーキテクチャ / 高性能 / スケーラブル設計';
-        if (zhCN.includes('AI') || zhCN.includes('模型') || zhCN.includes('多模态') || zhCN.includes('智能体')) return 'AI統合 / マルチモーダル推論 / スマートエージェント';
-        return '高度なエンジニアリング / 高性能 / 本番環境対応';
-      case 'ko':
-        if (zhCN.includes('组件') || zhCN.includes('架构')) return '컴포넌트 아키텍처 / 고성능 / 확장 가능한 설계';
-        if (zhCN.includes('AI') || zhCN.includes('模型') || zhCN.includes('多模态') || zhCN.includes('智能体')) return 'AI 통합 / 멀티모달 추론 / 스마트 에이전트';
-        return '고급 엔지니어링 / 고성능 / 프로덕션 준비 완료';
-      default:
-        return zhCN;
-    }
-  }, []);
+    return getLocalizedText(tagline, lang);
+  }, [getLocalizedText]);
 
   return (
     <AppContext.Provider
@@ -620,6 +647,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteTechSkill,
         addMediaItem,
         deleteMediaItem,
+        addExperience,
+        updateExperience,
+        deleteExperience,
         resetToDefaultData,
         customTranslations,
         updateTranslationKey,
@@ -629,6 +659,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         getProjectDescription,
         getProjectCategory,
         getProfileBioLines,
+        getProfileField,
         getSkillTagline,
       }}
     >
