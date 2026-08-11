@@ -4,7 +4,15 @@ import { X, ExternalLink, Github, Calendar, Tag, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const ProjectDetailModal: React.FC = () => {
-  const { selectedProject, setSelectedProject, t } = useApp();
+  const {
+    selectedProject,
+    setSelectedProject,
+    t,
+    getProjectTitle,
+    getProjectSummary,
+    getProjectDescription,
+    getProjectCategory
+  } = useApp();
 
   return (
     <AnimatePresence>
@@ -31,10 +39,10 @@ export const ProjectDetailModal: React.FC = () => {
             <div className="bg-amber-300 dark:bg-amber-400 border-b-4 border-black p-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <span className="bg-black text-white px-2.5 py-0.5 rounded text-xs font-black">
-                  {selectedProject.category}
+                  {getProjectCategory(selectedProject)}
                 </span>
                 <h3 className="font-black text-lg text-black truncate max-w-md">
-                  {selectedProject.title}
+                  {getProjectTitle(selectedProject)}
                 </h3>
               </div>
 
@@ -51,7 +59,7 @@ export const ProjectDetailModal: React.FC = () => {
             <div className="relative h-64 md:h-80 bg-zinc-100 dark:bg-slate-950 border-b-4 border-black dark:border-zinc-300 overflow-hidden">
               <img
                 src={selectedProject.imageUrl}
-                alt={selectedProject.title}
+                alt={getProjectTitle(selectedProject)}
                 className="w-full h-full object-cover"
               />
 
@@ -71,17 +79,17 @@ export const ProjectDetailModal: React.FC = () => {
                   <span>Created: {selectedProject.createdAt}</span>
                 </div>
                 <p className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 leading-relaxed bg-amber-50 dark:bg-slate-800 border-2 border-black dark:border-zinc-300 p-4 rounded-2xl shadow-[3px_3px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8]">
-                  {selectedProject.summary}
+                  {getProjectSummary(selectedProject)}
                 </p>
               </div>
 
-              {selectedProject.description && (
+              {getProjectDescription(selectedProject) && (
                 <div>
                   <h4 className="text-xs font-black uppercase text-zinc-600 dark:text-amber-300 tracking-wider mb-1.5">
                     Detailed Architecture & Overview
                   </h4>
                   <p className="text-sm font-bold text-zinc-700 dark:text-zinc-200 leading-relaxed whitespace-pre-line">
-                    {selectedProject.description}
+                    {getProjectDescription(selectedProject)}
                   </p>
                 </div>
               )}

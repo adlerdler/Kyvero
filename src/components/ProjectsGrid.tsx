@@ -10,13 +10,25 @@ export const ProjectsGrid: React.FC = () => {
     t,
     activeCategory,
     setActiveCategory,
-    setSelectedProject
+    setSelectedProject,
+    getProjectTitle,
+    getProjectSummary,
+    getProjectCategory
   } = useApp();
 
   const { projects } = data;
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  // Extract all categories dynamically
-  const categories = ['ALL', 'FEATURED', ...Array.from(new Set(projects.map(p => p.category)))];
+  React.useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [activeCategory]);
+
+  // Extract all categories dynamically with multi-language mapping
+  const categories = ['ALL', 'FEATURED', ...Array.from(new Set(projects.map(p => getProjectCategory(p))))];
 
   // Filter projects based on category
   const filteredProjects = projects.filter(p => {
@@ -24,7 +36,7 @@ export const ProjectsGrid: React.FC = () => {
       ? true
       : activeCategory === 'FEATURED'
       ? p.featured
-      : p.category === activeCategory;
+      : getProjectCategory(p) === activeCategory;
   });
 
   return (
@@ -60,9 +72,6 @@ export const ProjectsGrid: React.FC = () => {
                   {filteredProjects.length}
                 </motion.span>
               </h3>
-              <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mt-1">
-                精选全栈工程、移动端应用及AI交互架构作品矩阵
-              </p>
             </div>
           </div>
 
@@ -94,7 +103,36 @@ export const ProjectsGrid: React.FC = () => {
 
         {/* Projects Grid */}
         <AnimatePresence mode="wait">
-          {filteredProjects.length === 0 ? (
+          {isLoading ? (
+            <motion.div
+              key="skeleton"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {[1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  className="bg-zinc-50 dark:bg-slate-950 border-3 border-black dark:border-zinc-300 rounded-2xl p-5 shadow-[5px_5px_0px_0px_#000] dark:shadow-[5px_5px_0px_0px_#38BDF8] animate-pulse flex flex-col gap-4"
+                >
+                  <div className="w-full h-48 bg-zinc-200 dark:bg-slate-800 border-2 border-black rounded-xl" />
+                  <div className="flex items-center justify-between">
+                    <div className="w-2/3 h-5 bg-zinc-200 dark:bg-slate-800 rounded border border-black" />
+                    <div className="w-16 h-5 bg-amber-200 dark:bg-amber-900 rounded border border-black" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="w-full h-4 bg-zinc-200 dark:bg-slate-800 rounded" />
+                    <div className="w-4/5 h-4 bg-zinc-200 dark:bg-slate-800 rounded" />
+                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t-2 border-dashed border-black/20">
+                    <div className="w-20 h-8 bg-zinc-200 dark:bg-slate-800 rounded-xl border border-black" />
+                    <div className="w-20 h-8 bg-cyan-200 dark:bg-cyan-900 rounded-xl border border-black" />
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          ) : filteredProjects.length === 0 ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -129,7 +167,7 @@ export const ProjectsGrid: React.FC = () => {
                   >
                     <img
                       src={project.imageUrl}
-                      alt={project.title}
+                      alt={getProjectTitle(project)}
                       className="w-full h-full object-cover group-hover/img:scale-108 transition-transform duration-500 ease-out"
                     />
 
@@ -138,7 +176,7 @@ export const ProjectsGrid: React.FC = () => {
 
                     {/* Category Badge */}
                     <div className="absolute top-3 left-3 bg-cyan-300 dark:bg-cyan-400 text-black border-2 border-black px-3 py-1 rounded-xl text-[11px] font-black shadow-[2px_2px_0px_0px_#000] uppercase font-mono">
-                      {project.category}
+                      {getProjectCategory(project)}
                     </div>
 
                     {/* Featured Tag */}
@@ -171,11 +209,11 @@ export const ProjectsGrid: React.FC = () => {
                       className="font-black text-lg text-black dark:text-white hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors cursor-pointer leading-snug"
                       onClick={() => setSelectedProject(project)}
                     >
-                      {project.title}
+                      {getProjectTitle(project)}
                     </h4>
 
                     <p className="text-xs font-bold text-zinc-600 dark:text-zinc-300 line-clamp-2 leading-relaxed">
-                      {project.summary}
+                      {getProjectSummary(project)}
                     </p>
 
                     {/* Tech Tags */}

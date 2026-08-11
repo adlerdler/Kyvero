@@ -2,71 +2,14 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useApp } from '../context/AppContext';
 import { TechSkill } from '../types';
+import { initialTechSkills } from '../data/tech_skills';
 import { Cpu, Terminal, Zap, Code, ShieldCheck, Layers, Sparkles } from 'lucide-react';
 
 export const SkillProgressBar: React.FC = () => {
-  const { data, t } = useApp();
+  const { data, t, language, getSkillTagline } = useApp();
   const [activeCategory, setActiveCategory] = useState<string>('all');
 
-  // Fallback skills array hardcoded in TS file as required for I18N fallback
-  const fallbackSkills: TechSkill[] = [
-    {
-      id: 'skill-1',
-      name: 'React 19 & Next.js Ecosystem',
-      level: 96,
-      category: 'frontend',
-      color: 'cyan',
-      experience: '6 Yrs',
-      tagline: '高并发组件架构 / Server Components / 状态流转'
-    },
-    {
-      id: 'skill-2',
-      name: 'TypeScript & Advanced Type System',
-      level: 94,
-      category: 'frontend',
-      color: 'amber',
-      experience: '5 Yrs',
-      tagline: '类型拓扑建模 / 严格断言 / 零运行时开销'
-    },
-    {
-      id: 'skill-3',
-      name: 'Tailwind CSS & Cyber Line Art UI',
-      level: 95,
-      category: 'frontend',
-      color: 'emerald',
-      experience: '5 Yrs',
-      tagline: '新暴力主义 (Neo-Brutalism) / 二次元高对比度线条视觉'
-    },
-    {
-      id: 'skill-4',
-      name: 'Node.js, Express & Distributed API',
-      level: 90,
-      category: 'backend',
-      color: 'violet',
-      experience: '6 Yrs',
-      tagline: '高性能 REST Server / WebSocket / 代理路由转发'
-    },
-    {
-      id: 'skill-5',
-      name: 'Gemini AI SDK & AI Agents System',
-      level: 88,
-      category: 'ai',
-      color: 'rose',
-      experience: '3 Yrs',
-      tagline: '多模态推理 / Function Calling / 向量与结构化输出'
-    },
-    {
-      id: 'skill-6',
-      name: 'System Architecture & Performance',
-      level: 87,
-      category: 'architecture',
-      color: 'sky',
-      experience: '6 Yrs',
-      tagline: '高可用容灾 / 模块解耦 / 极致首屏与渲染流优化'
-    }
-  ];
-
-  const skillsList = (data.techSkills && data.techSkills.length > 0) ? data.techSkills : fallbackSkills;
+  const skillsList = (data.techSkills && data.techSkills.length > 0) ? data.techSkills : initialTechSkills;
 
   const categories = [
     { key: 'all', label: t.skillsFilterAll || '全量矩阵', icon: Layers },
@@ -156,6 +99,7 @@ export const SkillProgressBar: React.FC = () => {
           {filteredSkills.map((skill, index) => {
             const hexColor = getSkillColorHex(skill.color);
             const rank = getRankBadge(skill.level);
+            const taglineText = getSkillTagline(skill.tagline, language);
 
             return (
               <motion.div
@@ -213,10 +157,10 @@ export const SkillProgressBar: React.FC = () => {
                 </div>
 
                 {/* Skill Tagline / Highlights */}
-                {skill.tagline && (
+                {taglineText && (
                   <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-600 dark:text-zinc-400 mt-0.5">
                     <ShieldCheck className="w-3 h-3 text-amber-500 stroke-[3] shrink-0" />
-                    <span className="truncate">{skill.tagline}</span>
+                    <span className="truncate">{taglineText}</span>
                   </div>
                 )}
               </motion.div>

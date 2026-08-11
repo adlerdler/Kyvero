@@ -51,6 +51,85 @@ VITE_CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 VITE_CLOUDINARY_UPLOAD_PRESET=your_cloudinary_preset
 ```
 
+### 🗄️ Supabase 数据表设计与接入指南
+本项目已在根目录准备好了完整的 SQL 初始化脚本 `supabase_schema.sql`。要在 Supabase 中连接并使用数据库，请按照以下步骤操作：
+1. 登录 [Supabase 控制台](https://supabase.com/) 并创建一个新的 Project。
+2. 进入项目后，点击左侧导航栏的 **SQL Editor**。
+3. 将项目根目录下的 `supabase_schema.sql` 文件内容完整复制并粘贴到 SQL Editor 中。
+4. 点击 **Run** 执行脚本，系统将自动创建以下数据表并配置行级安全策略（RLS）：
+   - `profiles`（个人资料表）
+   - `projects`（作品集项目表）
+   - `blog_posts`（博客文章表）
+   - `visitor_logs`（181天访客热力图日志表）
+   - `geo_nodes`（全球访客雷达节点表）
+### 🖼️ Cloudinary 凭证获取与配置指南 (签名模式与无签名模式)
+
+要在项目中配置和使用 Cloudinary 作为图片存储库，您可以根据需要选择 **Signed (安全签名模式)** 或 **Unsigned (便捷无签名模式)**。
+
+#### 1. 注册与登录
+- 访问 [Cloudinary 官网](https://cloudinary.com/) 并注册/登录您的免费账号。
+
+#### 2. 从控制台获取基础凭证
+登录后进入 **Dashboard** (控制台首页)，在 **Product Environment Credentials** / **API Keys** 模块中可以直接复制以下信息：
+- **Cloud Name** -> 对应 `.env` 中的 `VITE_CLOUDINARY_CLOUD_NAME`
+- **API Key** -> 对应 `.env` 中的 `VITE_CLOUDINARY_API_KEY` (仅签名模式需要)
+- **API Secret (`VITE_CLOUDINARY_API_SECRET`)** -> **Cloudinary 官方提供**。点击 **API Secret** 旁边的 "Show"（眼睛）图标或 "Copy" 按钮进行查看和复制。
+
+---
+
+#### 3. 详细解释：如何获取与配置这两个关键变量？
+
+##### 🔑 A. `VITE_CLOUDINARY_API_SECRET` (Cloudinary 密钥)
+- **简介**：这是 Cloudinary 官方分配给您账户的顶级私钥，用于生成安全签名，确保上传请求来自您本人的授权。
+- **如何获取**：
+  1. 登录 [Cloudinary Console](https://cloudinary.com/)。
+  2. 确保页面处于 **Dashboard** (控制台主页)。
+  3. 在 **API Keys** 或 **Product Environment Credentials** 模块内，可以看到 `API Secret` 字段。
+  4. 默认是隐藏状态，点击旁边的**眼睛图标**（Show）或直接点击**复制按钮**，即可获得纯文本的密钥字符串。
+  5. 填入 `.env` 中的 `VITE_CLOUDINARY_API_SECRET`。
+
+---
+
+#### 4. 配置上传模式
+
+##### 选项 A：安全签名模式 (Signed Mode) —— 💡 推荐，更安全
+1. 在控制台右上角点击齿轮图标进入 **Settings**（设置），选择 **Upload** 标签页。
+2. 滚动到 **Upload presets**，点击 **Add upload preset**。
+3. 将 **Signing Mode** 设置为 **Signed**（已签名）。
+4. 保存后记下该 Preset 的名称（例如 `my_signed_preset`），并填写到 `.env` 的 `VITE_CLOUDINARY_UPLOAD_PRESET`。
+5. 在 `.env` 中补全所有配置：
+   ```env
+   VITE_CLOUDINARY_CLOUD_NAME=您的 Cloud Name
+   VITE_CLOUDINARY_UPLOAD_PRESET=您的 Signed Preset 名称
+   VITE_CLOUDINARY_API_KEY=您的 API Key
+   VITE_CLOUDINARY_API_SECRET=您的 API Secret
+   ```
+
+##### 选项 B：便捷无签名模式 (Unsigned Mode) —— 适合快速开发
+1. 在 **Settings > Upload** 标签页中滚动到 **Upload presets**，点击 **Add upload preset**。
+2. 将 **Signing Mode** 设置为 **Unsigned**（无签名）。
+3. 保存并记下该 Preset 名称。
+4. 在 `.env` 中仅需配置：
+   ```env
+   VITE_CLOUDINARY_CLOUD_NAME=您的 Cloud Name
+   VITE_CLOUDINARY_UPLOAD_PRESET=您的 Unsigned Preset 名称
+   ```
+
+---
+
+#### 5. 项目内上传函数调用
+项目已经预置了安全分流模块 `src/lib/cloudinary.ts`。当您在 `.env` 中配置了 `VITE_CLOUDINARY_API_KEY` 与 `VITE_CLOUDINARY_API_SECRET` 时，系统会自动切换到高安全性的 **Signed 签名模式** 并在客户端进行高强度的 SHA-1 加密校验；否则会自动降级使用 **Unsigned 无签名模式**。
+
+调用方式非常简单：
+```typescript
+import { uploadToCloudinary } from '@/lib/cloudinary';
+
+// 在表单或上传组件中直接调用：
+const imageUrl = await uploadToCloudinary(file);
+```
+
+
+
 ### 4. 启动本地开发服务器
 ```bash
 npm run dev

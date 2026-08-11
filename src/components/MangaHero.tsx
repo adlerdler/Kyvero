@@ -4,7 +4,7 @@ import { MapPin, Zap, ExternalLink, Sparkles, MessageSquare, Code2, ArrowUpRight
 import { motion } from 'motion/react';
 
 export const MangaHero: React.FC = () => {
-  const { data, t } = useApp();
+  const { data, t, language, getProfileBioLines } = useApp();
   const { profile } = data;
 
   const containerVariants = {
@@ -132,7 +132,7 @@ export const MangaHero: React.FC = () => {
 
             {/* Multiline Bio Cards */}
             <motion.div variants={itemVariants} className="flex flex-col gap-2 mt-1">
-              {profile.bioLines.map((line, idx) => (
+              {getProfileBioLines(profile.bioLines, language).map((line, idx) => (
                 <motion.div
                   key={idx}
                   whileHover={{ x: 4 }}

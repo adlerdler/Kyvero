@@ -26,16 +26,16 @@ export const Header: React.FC = () => {
           <div
             onClick={() => setCurrentView('home')}
             className="relative group cursor-pointer"
-            title={data.profile.siteTitle || `${data.profile.name} - 返回首页`}
+            title={data.systemConfig?.siteTitle || data.profile.siteTitle || `${data.profile.name} - 返回首页`}
           >
             <motion.div
               whileHover={{ rotate: [-2, 2, -2, 0], scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="w-11 h-11 bg-amber-300 dark:bg-amber-400 border-2 border-black dark:border-white rounded-lg flex items-center justify-center overflow-hidden font-black text-xl text-black shadow-[3px_3px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] transition-all"
             >
-              {data.profile.logoUrl ? (
+              {data.systemConfig?.logoUrl || data.profile.logoUrl ? (
                 <img
-                  src={data.profile.logoUrl}
+                  src={data.systemConfig?.logoUrl || data.profile.logoUrl}
                   alt={data.profile.name}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
@@ -48,18 +48,12 @@ export const Header: React.FC = () => {
                 <Terminal className="w-6 h-6 stroke-[2.5]" />
               )}
             </motion.div>
-            <span className="absolute -top-2 -right-2 bg-rose-400 text-black text-[10px] font-bold px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">
-              PRO
-            </span>
           </div>
 
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-black text-xl md:text-2xl text-black dark:text-white tracking-tighter font-mono flex items-center gap-2 transition-colors">
-                <span>{data.profile.name}</span>
-                <span className="bg-cyan-300 dark:bg-cyan-400 text-black text-[11px] font-black font-sans px-2 py-0.5 rounded border border-black shadow-[1.5px_1.5px_0px_0px_#000]">
-                  SYSTEM_ONLINE
-                </span>
+                <span>{data.systemConfig?.siteTitle || data.profile.siteTitle || data.profile.name}</span>
               </h1>
             </div>
           </div>

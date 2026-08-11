@@ -21,6 +21,14 @@ export const BlogSocialSection: React.FC = () => {
   const { socialLinks } = data;
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, []);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -110,21 +118,40 @@ export const BlogSocialSection: React.FC = () => {
         </div>
 
         {/* Differentiated Cyber Comm Channel Strip Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {socialLinks.map((link: SocialLink, index: number) => {
-            const isCopied = copiedId === link.id;
-
-            return (
-              <motion.div
-                key={link.id}
-                initial={{ opacity: 0, x: -12 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: index * 0.05 }}
-                className={`group relative bg-zinc-50 dark:bg-slate-950 border-2 border-black dark:border-zinc-200 rounded-2xl p-4 shadow-[4px_4px_0px_0px_#000] dark:shadow-[4px_4px_0px_0px_#38BDF8] hover:shadow-[6px_6px_0px_0px_#000] dark:hover:shadow-[6px_6px_0px_0px_#38BDF8] transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
-                  link.isPrimary ? 'ring-2 ring-amber-400/80 dark:ring-amber-400/50' : ''
-                }`}
+        {isLoading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map((n) => (
+              <div
+                key={n}
+                className="bg-zinc-50 dark:bg-slate-950 border-2 border-black dark:border-zinc-300 rounded-2xl p-4 shadow-[4px_4px_0px_0px_#000] dark:shadow-[4px_4px_0px_0px_#38BDF8] animate-pulse flex items-center justify-between gap-4"
               >
+                <div className="flex items-center gap-3.5 flex-1">
+                  <div className="w-12 h-12 bg-zinc-200 dark:bg-slate-800 rounded-xl border-2 border-black shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <div className="w-1/2 h-4 bg-zinc-200 dark:bg-slate-800 rounded border border-black" />
+                    <div className="w-3/4 h-3 bg-zinc-200 dark:bg-slate-800 rounded" />
+                  </div>
+                </div>
+                <div className="w-20 h-8 bg-cyan-200 dark:bg-cyan-900 rounded-xl border border-black shrink-0" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {socialLinks.map((link: SocialLink, index: number) => {
+              const isCopied = copiedId === link.id;
+
+              return (
+                <motion.div
+                  key={link.id}
+                  initial={{ opacity: 0, x: -12 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.35, delay: index * 0.05 }}
+                  className={`group relative bg-zinc-50 dark:bg-slate-950 border-2 border-black dark:border-zinc-200 rounded-2xl p-4 shadow-[4px_4px_0px_0px_#000] dark:shadow-[4px_4px_0px_0px_#38BDF8] hover:shadow-[6px_6px_0px_0px_#000] dark:hover:shadow-[6px_6px_0px_0px_#38BDF8] transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+                    link.isPrimary ? 'ring-2 ring-amber-400/80 dark:ring-amber-400/50' : ''
+                  }`}
+                >
                 {/* Left: Icon & Detail */}
                 <div className="flex items-center gap-3.5 min-w-0 flex-1">
                   <div className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000] transition-transform group-hover:scale-105 ${getChannelBadgeTheme(link.type)}`}>
@@ -187,7 +214,8 @@ export const BlogSocialSection: React.FC = () => {
             );
           })}
         </div>
-      </div>
+      )}
+    </div>
     </motion.section>
   );
 };

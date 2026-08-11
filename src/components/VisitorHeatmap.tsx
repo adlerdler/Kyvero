@@ -20,13 +20,9 @@ export interface AnnualDayData {
   monthName: string;
 }
 
-const MONTHS_ZH = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
-const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const DAYS_ZH = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-const DAYS_EN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
 export const VisitorHeatmap: React.FC = () => {
-  const { language } = useApp();
+  const { language, t } = useApp();
+  const ht = t;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -76,8 +72,8 @@ export const VisitorHeatmap: React.FC = () => {
       if (month === 5 || month === 11) base += 40; // summer / winter peak
       const visits = Math.max(5, Math.floor(base + pseudoRand * 120));
 
-      const monthNames = language === 'zh' ? MONTHS_ZH : MONTHS_EN;
-      const monthName = monthNames[month];
+      const monthNames = t.monthsList.split(',');
+      const monthName = monthNames[month] || '';
 
       data.push({
         dateStr,
@@ -97,7 +93,7 @@ export const VisitorHeatmap: React.FC = () => {
     }
 
     return data;
-  }, [language]);
+  }, [t.monthsList]);
 
   // Statistics calculation for annual data
   const stats = useMemo(() => {
@@ -155,7 +151,7 @@ export const VisitorHeatmap: React.FC = () => {
       .interpolator(d3.interpolateYlOrRd);
 
     // Days labels (Y Axis)
-    const days = language === 'zh' ? DAYS_ZH : DAYS_EN;
+    const days = t.daysList.split(',');
     // Show Mon, Wed, Fri
     const showDayIndices = [0, 2, 4]; 
 
@@ -168,7 +164,7 @@ export const VisitorHeatmap: React.FC = () => {
         .style('font-family', 'monospace')
         .style('fill', '#18181b')
         .attr('text-anchor', 'end')
-        .text(days[dayIdx]);
+        .text(days[dayIdx] || '');
     });
 
     // Draw Contribution Rectangles (NO numbers inside cells)
@@ -226,7 +222,7 @@ export const VisitorHeatmap: React.FC = () => {
         setSelectedCell(d);
       });
 
-  }, [annualData, language]);
+  }, [annualData, t.daysList]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -234,13 +230,13 @@ export const VisitorHeatmap: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-cyan-100 border-2 border-black p-4 rounded-2xl shadow-[3px_3px_0px_0px_#000] flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-black uppercase text-zinc-700">近半年总访问量</p>
+            <p className="text-[11px] font-black uppercase text-zinc-700">{ht.totalVisitsTitle}</p>
             <p className="text-2xl font-black text-black font-mono mt-0.5">
               {stats.totalVisits.toLocaleString()}
             </p>
             <p className="text-[10px] font-bold text-emerald-700 flex items-center gap-1 mt-1">
               <TrendingUp className="w-3 h-3 stroke-[3]" />
-              <span>较前期环比 +28.4%</span>
+              <span>{ht.comparePeriod}</span>
             </p>
           </div>
           <div className="w-10 h-10 bg-cyan-300 border-2 border-black rounded-xl flex items-center justify-center text-black font-black shadow-[1.5px_1.5px_0px_0px_#000]">
@@ -250,12 +246,12 @@ export const VisitorHeatmap: React.FC = () => {
 
         <div className="bg-rose-100 border-2 border-black p-4 rounded-2xl shadow-[3px_3px_0px_0px_#000] flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-black uppercase text-zinc-700">单日流量峰值</p>
+            <p className="text-[11px] font-black uppercase text-zinc-700">{ht.peakVisitsTitle}</p>
             <p className="text-xl font-black text-black font-mono mt-0.5">
               {stats.peakDay.dateStr}
             </p>
             <p className="text-[10px] font-bold text-rose-800 mt-1">
-              峰值流量: <span className="font-mono font-black">{stats.peakDay.visits}</span> 次/天
+              {ht.peakTrafficLabel}: <span className="font-mono font-black">{stats.peakDay.visits}</span> {ht.visitsUnit}
             </p>
           </div>
           <div className="w-10 h-10 bg-rose-300 border-2 border-black rounded-xl flex items-center justify-center text-black font-black shadow-[1.5px_1.5px_0px_0px_#000]">
@@ -265,12 +261,12 @@ export const VisitorHeatmap: React.FC = () => {
 
         <div className="bg-emerald-100 border-2 border-black p-4 rounded-2xl shadow-[3px_3px_0px_0px_#000] flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-black uppercase text-zinc-700">日均访问量</p>
+            <p className="text-[11px] font-black uppercase text-zinc-700">{ht.avgVisitsTitle}</p>
             <p className="text-2xl font-black text-black font-mono mt-0.5">
-              {stats.avgVisits} <span className="text-xs">次/天</span>
+              {stats.avgVisits} <span className="text-xs">{ht.visitsUnit}</span>
             </p>
             <p className="text-[10px] font-bold text-emerald-800 mt-1">
-              高活跃天数: <span className="font-mono font-black">{stats.activeDaysCount}</span> 天
+              {ht.highActiveDaysLabel}: <span className="font-mono font-black">{stats.activeDaysCount}</span> {ht.daysUnit}
             </p>
           </div>
           <div className="w-10 h-10 bg-emerald-300 border-2 border-black rounded-xl flex items-center justify-center text-black font-black shadow-[1.5px_1.5px_0px_0px_#000]">
@@ -280,12 +276,12 @@ export const VisitorHeatmap: React.FC = () => {
 
         <div className="bg-violet-100 border-2 border-black p-4 rounded-2xl shadow-[3px_3px_0px_0px_#000] flex items-center justify-between">
           <div>
-            <p className="text-[11px] font-black uppercase text-zinc-700">采样跨度</p>
+            <p className="text-[11px] font-black uppercase text-zinc-700">{ht.sampleSpanTitle}</p>
             <p className="text-2xl font-black text-black font-mono mt-0.5">
               182 <span className="text-xs">DAYS</span>
             </p>
             <p className="text-[10px] font-bold text-violet-800 mt-1">
-              半年度连续贡献矩阵完整记录
+              {ht.sampleSpanSubtitle}
             </p>
           </div>
           <div className="w-10 h-10 bg-violet-300 border-2 border-black rounded-xl flex items-center justify-center text-black font-black shadow-[1.5px_1.5px_0px_0px_#000]">
@@ -302,14 +298,14 @@ export const VisitorHeatmap: React.FC = () => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-black font-mono text-black dark:text-zinc-200 uppercase">
-              GITHUB_STYLE_SEMIANNUAL_CONTRIBUTION // 182 DAYS
+            <span className="text-xs font-black font-mono text-black dark:text-zinc-200 uppercase tracking-wide">
+              {ht.chartHeading}
             </span>
           </div>
 
           {/* Color Legend */}
           <div className="flex items-center gap-1.5 text-[10px] font-black font-mono text-black dark:text-zinc-300">
-            <span>LESS</span>
+            <span>{ht.less}</span>
             <div className="flex items-center gap-0.5 border border-black p-0.5 rounded bg-white shadow-[1px_1px_0px_0px_#000]">
               <span className="w-3.5 h-3.5 rounded-xs bg-[#ffffcc] border border-black/30" />
               <span className="w-3.5 h-3.5 rounded-xs bg-[#ffc44d] border border-black/30" />
@@ -317,7 +313,7 @@ export const VisitorHeatmap: React.FC = () => {
               <span className="w-3.5 h-3.5 rounded-xs bg-[#b30000] border border-black/30" />
               <span className="w-3.5 h-3.5 rounded-xs bg-[#5a0000] border border-black/30" />
             </div>
-            <span>MORE</span>
+            <span>{ht.more}</span>
           </div>
         </div>
 
@@ -340,8 +336,8 @@ export const VisitorHeatmap: React.FC = () => {
               <span>{tooltipData.cell.dateStr}</span>
             </div>
             <div className="text-sm font-black text-white flex items-center justify-between gap-3">
-              <span>当天访问量:</span>
-              <span className="text-amber-300 font-mono font-black text-base">{tooltipData.cell.visits} 次</span>
+              <span>{ht.tooltipVisitsLabel}:</span>
+              <span className="text-amber-300 font-mono font-black text-base">{tooltipData.cell.visits} {ht.visitsUnit}</span>
             </div>
           </div>
         )}
@@ -360,20 +356,19 @@ export const VisitorHeatmap: React.FC = () => {
             </div>
             <div>
               <p className="font-black text-xs text-black">
-                已选中日期详情: <span className="font-mono text-amber-900 bg-amber-200 px-2 py-0.5 rounded border border-black">{selectedCell.dateStr}</span>
+                {ht.selectedDetailHeading}: <span className="font-mono text-amber-900 bg-amber-200 px-2 py-0.5 rounded border border-black">{selectedCell.dateStr}</span>
               </p>
               <p className="text-[11px] font-bold text-zinc-800 mt-0.5">
-                当日访客流量达 <span className="font-mono font-black">{selectedCell.visits}</span> 次，
-                {selectedCell.visits > stats.avgVisits * 1.3 ? '🔥 属于高流量爆发日' : selectedCell.visits > stats.avgVisits ? '⚡ 流量高于全年平均' : '🌱 流量平稳日'}。
+                {t.heatmapDetailPrefix} <span className="font-mono font-black">{selectedCell.visits}</span> {t.visitsUnit}{t.heatmapDetailSuffix}{selectedCell.visits > stats.avgVisits * 1.3 ? `🔥 ${t.highTrafficDesc}` : selectedCell.visits > stats.avgVisits ? `⚡ ${t.aboveAverageDesc}` : `🌱 ${t.stableTrafficDesc}`}{t.heatmapDetailEnd}
               </p>
             </div>
           </div>
 
           <button
             onClick={() => setSelectedCell(null)}
-            className="text-xs font-black bg-white text-black border border-black px-3 py-1 rounded-xl shadow-[1px_1px_0px_0px_#000] hover:bg-zinc-100 self-end sm:self-auto"
+            className="text-xs font-black bg-white text-black border border-black px-3 py-1 rounded-xl shadow-[1px_1px_0px_0px_#000] hover:bg-zinc-100 self-end sm:self-auto font-sans"
           >
-            关闭详情
+            {ht.closeBtn}
           </button>
         </motion.div>
       )}

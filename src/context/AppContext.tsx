@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { SiteData, LanguageCode, Project, Profile, SocialLink, FooterLink, TechSkill } from '../types';
+import { SiteData, LanguageCode, Project, Profile, SocialLink, FooterLink, TechSkill, MediaItem, SystemConfig } from '../types';
 import { INITIAL_SITE_DATA } from '../data/initialData';
 import { DEFAULT_LANGUAGE, TRANSLATIONS, TranslationDictionary } from '../i18n/languages';
 
@@ -31,6 +31,7 @@ interface AppContextType {
   
   // Data Mutators
   updateProfile: (profile: Profile) => void;
+  updateSystemConfig: (config: SystemConfig) => void;
   addProject: (project: Omit<Project, 'id' | 'createdAt'>) => void;
   updateProject: (project: Project) => void;
   deleteProject: (id: string) => void;
@@ -43,7 +44,18 @@ interface AppContextType {
   addTechSkill: (skill: Omit<TechSkill, 'id'>) => void;
   updateTechSkill: (skill: TechSkill) => void;
   deleteTechSkill: (id: string) => void;
+  addMediaItem: (item: Omit<MediaItem, 'id' | 'createdAt'>) => void;
+  deleteMediaItem: (id: string) => void;
   resetToDefaultData: () => void;
+  customTranslations: Record<LanguageCode, Partial<TranslationDictionary>>;
+  updateTranslationKey: (key: keyof TranslationDictionary, lang: LanguageCode, value: string) => void;
+  resetTranslations: () => void;
+  getProjectTitle: (p: Project) => string;
+  getProjectSummary: (p: Project) => string;
+  getProjectDescription: (p: Project) => string;
+  getProjectCategory: (p: Project) => string;
+  getProfileBioLines: (bio: Record<LanguageCode, string[]> | string[] | undefined, lang: LanguageCode) => string[];
+  getSkillTagline: (tagline: Record<LanguageCode, string> | string | undefined, lang: LanguageCode) => string;
 }
 
 const STORAGE_KEY_DATA = 'manga_portfolio_data_v2';
@@ -69,6 +81,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
           if (!parsed.techSkills || !Array.isArray(parsed.techSkills)) {
             parsed.techSkills = INITIAL_SITE_DATA.techSkills;
+          } else {
+            parsed.techSkills = parsed.techSkills.map((s: any) => {
+              if (s.tagline && typeof s.tagline === 'string') {
+                return {
+                  ...s,
+                  tagline: {
+                    'zh-CN': s.tagline,
+                    'zh-TW': '',
+                    'en': '',
+                    'ja': '',
+                    'ko': ''
+                  }
+                };
+              }
+              return s;
+            });
+          }
+          if (!parsed.mediaItems || !Array.isArray(parsed.mediaItems)) {
+            parsed.mediaItems = INITIAL_SITE_DATA.mediaItems;
+          }
+          if (!parsed.profile.bioLines || Array.isArray(parsed.profile.bioLines)) {
+            const oldArr = Array.isArray(parsed.profile.bioLines) ? parsed.profile.bioLines : null;
+            parsed.profile.bioLines = {
+              ...INITIAL_SITE_DATA.profile.bioLines,
+              ...(oldArr ? { 'zh-CN': oldArr } : {})
+            };
           }
           return parsed;
         }
@@ -90,6 +128,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // fallback
     }
     return DEFAULT_LANGUAGE;
+  });
+
+  // Custom Translations State
+  const [customTranslations, setCustomTranslations] = useState<Record<LanguageCode, Partial<TranslationDictionary>>>(() => {
+    try {
+      const saved = localStorage.getItem('kyvero_custom_translations_v1');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn('Failed to parse custom translations', e);
+    }
+    return {
+      'zh-CN': {},
+      'zh-TW': {},
+      'en': {},
+      'ja': {},
+      'ko': {}
+    };
   });
 
   // Theme state ('light' | 'dark')
@@ -204,6 +261,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentView('home');
   };
 
+  const getI18nStr = React.useCallback((key: keyof TranslationDictionary): string => {
+    const staticDict = TRANSLATIONS[language] || TRANSLATIONS['zh-CN'];
+    const customDict = customTranslations[language] || {};
+    return customDict[key] || staticDict[key] || TRANSLATIONS['zh-CN'][key] || '';
+  }, [language, customTranslations]);
+
   const loginAdmin = (password: string) => {
     // Default master password or 'admin' or 'admin123'
     if (password.trim() === 'admin123' || password.trim() === 'admin' || password.trim() === 'master') {
@@ -214,7 +277,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // ignore
       }
       setIsAdminModalOpen(false);
-      showToast('⚡ 管理员登录成功！/ Authenticated Successfully!');
+      showToast(getI18nStr('toastAdminLoginSuccess'));
       return true;
     }
     return false;
@@ -227,7 +290,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       // ignore
     }
-    showToast('👋 已安全退出控制台');
+    showToast(getI18nStr('toastAdminLogout'));
   };
 
   // Data mutation methods
@@ -236,8 +299,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       profile: newProfile
     }));
-    showToast('✨ 个人资料更新成功');
+    showToast(getI18nStr('toastProfileUpdated'));
   };
+
+  const updateSystemConfig = (newConfig: SystemConfig) => {
+    setData(prev => ({
+      ...prev,
+      systemConfig: newConfig
+    }));
+    showToast(getI18nStr('toastProfileUpdated') || '系统设置已更新');
+  };
+
+  // Sync document title and favicon from systemConfig
+  useEffect(() => {
+    const config = data.systemConfig || INITIAL_SITE_DATA.systemConfig;
+    if (config) {
+      if (config.siteTitle) {
+        document.title = config.siteTitle;
+      }
+      if (config.iconUrl) {
+        let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        link.href = config.iconUrl;
+      }
+    }
+  }, [data.systemConfig]);
 
   const addProject = (projectData: Omit<Project, 'id' | 'createdAt'>) => {
     const newProj: Project = {
@@ -249,7 +339,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       projects: [newProj, ...prev.projects]
     }));
-    showToast('📁 新增项目添加成功');
+    showToast(getI18nStr('toastProjectAdded'));
   };
 
   const updateProject = (updatedProject: Project) => {
@@ -257,7 +347,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       projects: prev.projects.map(p => (p.id === updatedProject.id ? updatedProject : p))
     }));
-    showToast('📝 项目数据更新成功');
+    showToast(getI18nStr('toastProjectUpdated'));
   };
 
   const deleteProject = (id: string) => {
@@ -265,7 +355,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       projects: prev.projects.filter(p => p.id !== id)
     }));
-    showToast('🗑️ 项目已移除');
+    showToast(getI18nStr('toastProjectDeleted'));
   };
 
   const addSocialLink = (linkData: Omit<SocialLink, 'id'>) => {
@@ -277,7 +367,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       socialLinks: [...prev.socialLinks, newLink]
     }));
-    showToast('🔗 新增外链保存成功');
+    showToast(getI18nStr('toastLinkAdded'));
   };
 
   const updateSocialLink = (updatedLink: SocialLink) => {
@@ -285,7 +375,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       socialLinks: prev.socialLinks.map(l => (l.id === updatedLink.id ? updatedLink : l))
     }));
-    showToast('📝 链接修改已生效');
+    showToast(getI18nStr('toastLinkUpdated'));
   };
 
   const deleteSocialLink = (id: string) => {
@@ -293,7 +383,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       socialLinks: prev.socialLinks.filter(l => l.id !== id)
     }));
-    showToast('🗑️ 链接已成功删除');
+    showToast(getI18nStr('toastLinkDeleted'));
   };
 
   const addFooterLink = (linkData: Omit<FooterLink, 'id'>) => {
@@ -305,7 +395,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       footerLinks: [...(prev.footerLinks || []), newLink]
     }));
-    showToast('🔗 页脚独立链接保存成功');
+    showToast(getI18nStr('toastFooterLinkAdded'));
   };
 
   const updateFooterLink = (updatedLink: FooterLink) => {
@@ -313,7 +403,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       footerLinks: (prev.footerLinks || []).map(l => (l.id === updatedLink.id ? updatedLink : l))
     }));
-    showToast('📝 页脚链接更新已生效');
+    showToast(getI18nStr('toastFooterLinkUpdated'));
   };
 
   const deleteFooterLink = (id: string) => {
@@ -321,7 +411,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       footerLinks: (prev.footerLinks || []).filter(l => l.id !== id)
     }));
-    showToast('🗑️ 页脚链接已移除');
+    showToast(getI18nStr('toastFooterLinkDeleted'));
   };
 
   const addTechSkill = (skillData: Omit<TechSkill, 'id'>) => {
@@ -333,7 +423,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       techSkills: [...(prev.techSkills || []), newSkill]
     }));
-    showToast('⚡ 新增核心技术栈保存成功');
+    showToast(getI18nStr('toastSkillAdded'));
   };
 
   const updateTechSkill = (updatedSkill: TechSkill) => {
@@ -341,7 +431,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       techSkills: (prev.techSkills || []).map(s => (s.id === updatedSkill.id ? updatedSkill : s))
     }));
-    showToast('📝 技术栈熟练度更新成功');
+    showToast(getI18nStr('toastSkillUpdated'));
   };
 
   const deleteTechSkill = (id: string) => {
@@ -349,7 +439,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       techSkills: (prev.techSkills || []).filter(s => s.id !== id)
     }));
-    showToast('🗑️ 技术栈技能项已移除');
+    showToast(getI18nStr('toastSkillDeleted'));
+  };
+
+  const addMediaItem = (itemData: Omit<MediaItem, 'id' | 'createdAt'>) => {
+    const newItem: MediaItem = {
+      ...itemData,
+      id: `media-${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+    setData(prev => ({
+      ...prev,
+      mediaItems: [newItem, ...(prev.mediaItems || [])]
+    }));
+    showToast(getI18nStr('toastMediaAdded'));
+  };
+
+  const deleteMediaItem = (id: string) => {
+    setData(prev => ({
+      ...prev,
+      mediaItems: (prev.mediaItems || []).filter(item => item.id !== id)
+    }));
+    showToast(getI18nStr('toastMediaDeleted'));
   };
 
   const resetToDefaultData = () => {
@@ -359,10 +470,114 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       // ignore
     }
-    showToast('🔄 已恢复为官方初始数据');
+    showToast(getI18nStr('toastDataReset'));
   };
 
-  const t = TRANSLATIONS[language] || TRANSLATIONS['zh-CN'];
+  const updateTranslationKey = (key: keyof TranslationDictionary, lang: LanguageCode, value: string) => {
+    setCustomTranslations(prev => {
+      const updated = {
+        ...prev,
+        [lang]: {
+          ...prev[lang],
+          [key]: value
+        }
+      };
+      try {
+        localStorage.setItem('kyvero_custom_translations_v1', JSON.stringify(updated));
+      } catch (e) {
+        console.warn(e);
+      }
+      return updated;
+    });
+  };
+
+  const resetTranslations = () => {
+    setCustomTranslations({
+      'zh-CN': {},
+      'zh-TW': {},
+      'en': {},
+      'ja': {},
+      'ko': {}
+    });
+    try {
+      localStorage.removeItem('kyvero_custom_translations_v1');
+    } catch (e) {
+      console.warn(e);
+    }
+    showToast(getI18nStr('toastTranslationsReset'));
+  };
+
+  const t = React.useMemo(() => {
+    const staticDict = TRANSLATIONS[language] || TRANSLATIONS['zh-CN'];
+    const customDict = customTranslations[language] || {};
+    return {
+      ...staticDict,
+      ...customDict
+    };
+  }, [language, customTranslations]);
+
+  const getLocalizedText = React.useCallback((field: Record<LanguageCode, string> | string | undefined, lang: LanguageCode): string => {
+    if (!field) return '';
+    if (typeof field === 'string') return field;
+    if (typeof field === 'object' && field !== null) {
+      return field[lang] || field['zh-CN'] || field['en'] || Object.values(field)[0] || '';
+    }
+    return '';
+  }, []);
+
+  const getProjectTitle = React.useCallback((p: Project) => getLocalizedText(p.title, language), [language, getLocalizedText]);
+  const getProjectSummary = React.useCallback((p: Project) => getLocalizedText(p.summary, language), [language, getLocalizedText]);
+  const getProjectDescription = React.useCallback((p: Project) => getLocalizedText(p.description, language), [language, getLocalizedText]);
+  const getProjectCategory = React.useCallback((p: Project) => getLocalizedText(p.category, language), [language, getLocalizedText]);
+  const getProfileBioLines = React.useCallback((bio: Record<LanguageCode, string[]> | string[] | undefined, lang: LanguageCode): string[] => {
+    if (!bio) return [];
+    if (typeof bio === 'object' && !Array.isArray(bio) && bio !== null) {
+      const bioObj = bio as Record<LanguageCode, string[]>;
+      return bioObj[lang] || bioObj['zh-CN'] || bioObj['en'] || Object.values(bioObj)[0] || [];
+    }
+    if (Array.isArray(bio)) {
+      if (lang === 'zh-CN') return bio;
+      const defaultBio = (INITIAL_SITE_DATA.profile.bioLines as Record<LanguageCode, string[]>)[lang];
+      if (defaultBio && Array.isArray(defaultBio)) return defaultBio;
+      return bio;
+    }
+    return [];
+  }, []);
+
+  const getSkillTagline = React.useCallback((tagline: Record<LanguageCode, string> | string | undefined, lang: LanguageCode): string => {
+    if (!tagline) return '';
+    if (typeof tagline === 'string') return tagline;
+    
+    const zhCN = tagline['zh-CN'] || Object.values(tagline)[0] || '';
+    const val = tagline[lang];
+    
+    // If the value exists, is not empty, and is either not identical to zhCN OR we are actually requesting zh-CN, use it.
+    if (val && val.trim() !== '' && (lang === 'zh-CN' || val !== zhCN)) {
+      return val;
+    }
+
+    if (!zhCN) return '';
+
+    switch (lang) {
+      case 'zh-TW':
+        return zhCN.replace(/架构/g, '架構').replace(/高并发/g, '高併發').replace(/性能/g, '效能').replace(/优化/g, '優化').replace(/向量/g, '向量').replace(/组件/g, '組件');
+      case 'en':
+        if (zhCN.includes('组件') || zhCN.includes('架构')) return 'Component Architecture / High Performance / Scalable Design';
+        if (zhCN.includes('AI') || zhCN.includes('模型') || zhCN.includes('多模态') || zhCN.includes('智能体')) return 'AI Integration / Multimodal Inference / Smart Agents';
+        if (zhCN.includes('后端') || zhCN.includes('Server')) return 'Backend Systems / API Design / High Availability';
+        return 'Advanced Engineering / High Performance / Production Ready';
+      case 'ja':
+        if (zhCN.includes('组件') || zhCN.includes('架构')) return 'コンポーネントアーキテクチャ / 高性能 / スケーラブル設計';
+        if (zhCN.includes('AI') || zhCN.includes('模型') || zhCN.includes('多模态') || zhCN.includes('智能体')) return 'AI統合 / マルチモーダル推論 / スマートエージェント';
+        return '高度なエンジニアリング / 高性能 / 本番環境対応';
+      case 'ko':
+        if (zhCN.includes('组件') || zhCN.includes('架构')) return '컴포넌트 아키텍처 / 고성능 / 확장 가능한 설계';
+        if (zhCN.includes('AI') || zhCN.includes('模型') || zhCN.includes('多模态') || zhCN.includes('智能体')) return 'AI 통합 / 멀티모달 추론 / 스마트 에이전트';
+        return '고급 엔지니어링 / 고성능 / 프로덕션 준비 완료';
+      default:
+        return zhCN;
+    }
+  }, []);
 
   return (
     <AppContext.Provider
@@ -390,6 +605,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSearchQuery,
         showToast,
         updateProfile,
+        updateSystemConfig,
         addProject,
         updateProject,
         deleteProject,
@@ -402,7 +618,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addTechSkill,
         updateTechSkill,
         deleteTechSkill,
-        resetToDefaultData
+        addMediaItem,
+        deleteMediaItem,
+        resetToDefaultData,
+        customTranslations,
+        updateTranslationKey,
+        resetTranslations,
+        getProjectTitle,
+        getProjectSummary,
+        getProjectDescription,
+        getProjectCategory,
+        getProfileBioLines,
+        getSkillTagline,
       }}
     >
       {children}

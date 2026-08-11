@@ -33,7 +33,7 @@ export const AdminLoginPage: React.FC = () => {
           className="inline-flex items-center gap-2 bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black dark:border-zinc-200 px-3.5 py-2 rounded-xl text-xs font-black shadow-[3px_3px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] hover:bg-zinc-100 dark:hover:bg-slate-800 transition-colors"
         >
           <ArrowLeft className="w-4 h-4 stroke-[3]" />
-          <span>返回首页 / Home</span>
+          <span>{t.returnToHome}</span>
         </motion.button>
 
         <div className="flex items-center gap-2">
@@ -120,7 +120,7 @@ export const AdminLoginPage: React.FC = () => {
                 {t.adminLoginTitle}
               </h2>
               <p className="text-xs font-bold text-black/80 mt-0.5">
-                独立加密验证通道 // ADMIN PORTAL
+                {t.adminPortalSubtitle}
               </p>
             </div>
           </div>

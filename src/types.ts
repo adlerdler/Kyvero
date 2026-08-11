@@ -12,14 +12,14 @@ export interface SocialLink {
 
 export interface Project {
   id: string;
-  title: string;
-  summary: string;
-  description: string;
+  title: Record<LanguageCode, string> | string;
+  summary: Record<LanguageCode, string> | string;
+  description: Record<LanguageCode, string> | string;
   imageUrl: string;
   demoUrl?: string;
   githubUrl?: string;
   blogUrl?: string;
-  category: string;
+  category: Record<LanguageCode, string> | string;
   tags: string[];
   featured: boolean;
   createdAt: string;
@@ -33,7 +33,7 @@ export interface TechSkill {
   color: string; // e.g. cyan, amber, emerald, violet, rose, sky
   iconName?: string;
   experience?: string;
-  tagline?: string;
+  tagline?: Record<LanguageCode, string> | string;
 }
 
 export interface Profile {
@@ -46,7 +46,7 @@ export interface Profile {
   iconUrl?: string;
   siteTitle?: string;
   speechBubbleText: string;
-  bioLines: string[];
+  bioLines: Record<LanguageCode, string[]> | string[];
   location: string;
   statusText: string;
   skills: string[];
@@ -63,12 +63,33 @@ export interface FooterLink {
   iconType: 'github' | 'twitter' | 'email' | 'blog' | 'bilibili' | 'other';
 }
 
+export interface SystemConfig {
+  siteTitle: string;
+  logoUrl: string;
+  iconUrl: string;
+  copyrightText: string;
+  copyrightSubtext: string;
+  version: string;
+  buildChannel: string;
+  footerLinks: FooterLink[];
+}
+
+export interface MediaItem {
+  id: string;
+  name: string;
+  url: string;
+  createdAt: string;
+  size?: string;
+}
+
 export interface SiteData {
   profile: Profile;
   socialLinks: SocialLink[];
   footerLinks?: FooterLink[];
   projects: Project[];
   techSkills?: TechSkill[];
+  mediaItems?: MediaItem[];
+  systemConfig?: SystemConfig;
 }
 
-export type AdminTab = 'profile' | 'projects' | 'skills' | 'links' | 'analytics' | 'system';
+export type AdminTab = 'profile' | 'projects' | 'skills' | 'links' | 'media' | 'analytics' | 'system' | 'i18n';

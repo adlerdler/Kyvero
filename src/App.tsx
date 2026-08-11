@@ -39,23 +39,27 @@ function MainLayout() {
 
   useEffect(() => {
     // Update site title dynamically
-    if (data?.profile?.siteTitle) {
+    const config = data?.systemConfig;
+    if (config?.siteTitle) {
+      document.title = config.siteTitle;
+    } else if (data?.profile?.siteTitle) {
       document.title = data.profile.siteTitle;
     } else if (data?.profile?.name) {
       document.title = `${data.profile.name} - ${data.profile.title || 'Portfolio'}`;
     }
 
     // Update site icon/favicon dynamically
-    if (data?.profile?.iconUrl) {
+    const iconToUse = config?.iconUrl || data?.profile?.iconUrl;
+    if (iconToUse) {
       let faviconLink = document.querySelector<HTMLLinkElement>("link[rel*='icon']");
       if (!faviconLink) {
         faviconLink = document.createElement('link');
         faviconLink.rel = 'shortcut icon';
         document.head.appendChild(faviconLink);
       }
-      faviconLink.href = data.profile.iconUrl;
+      faviconLink.href = iconToUse;
     }
-  }, [data?.profile?.siteTitle, data?.profile?.iconUrl, data?.profile?.name, data?.profile?.title]);
+  }, [data?.systemConfig, data?.profile?.siteTitle, data?.profile?.iconUrl, data?.profile?.name, data?.profile?.title]);
 
   const sections = [
     { id: 'section-hero', title: '01 / HERO', name: '个人主页' },
@@ -181,23 +185,39 @@ function MainLayout() {
                       </div>
 
                       {/* Icon-Only Dedicated Footer Links (Configured in System Settings) */}
-                      {data.footerLinks && data.footerLinks.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-2">
-                          {data.footerLinks.map(link => (
-                            <a
-                              key={link.id}
-                              href={link.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title={link.name}
-                              aria-label={link.name}
-                              className="w-8.5 h-8.5 bg-white dark:bg-slate-800 border-2 border-black dark:border-zinc-300 rounded-xl shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] hover:bg-yellow-300 dark:hover:bg-amber-400 hover:scale-105 active:scale-95 text-black dark:text-zinc-100 transition-all flex items-center justify-center"
-                            >
-                              {getFooterIcon(link.iconType, link.name)}
-                            </a>
-                          ))}
-                        </div>
-                      )}
+                      {(() => {
+                        const linksToUse = data.systemConfig?.footerLinks || data.footerLinks || [];
+                        return linksToUse.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            {linksToUse.map(link => (
+                              <a
+                                key={link.id}
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={link.name}
+                                aria-label={link.name}
+                                className="w-8.5 h-8.5 bg-white dark:bg-slate-800 border-2 border-black dark:border-zinc-300 rounded-xl shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] hover:bg-yellow-300 dark:hover:bg-amber-400 hover:scale-105 active:scale-95 text-black dark:text-zinc-100 transition-all flex items-center justify-center"
+                              >
+                                {getFooterIcon(link.iconType, link.name)}
+                              </a>
+                            ))}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Copyright Information */}
+                      <div className="mt-1 text-[11px] font-bold text-zinc-600 dark:text-zinc-400 flex flex-wrap items-center gap-x-2 gap-y-0.5 leading-relaxed">
+                        <span>{data.systemConfig?.copyrightText || data.profile.copyrightText || `© 2026 ${data.profile.name}. All rights reserved.`}</span>
+                        {(data.systemConfig?.copyrightSubtext || data.profile.copyrightSubtext) && (
+                          <>
+                            <span className="text-zinc-400 dark:text-zinc-600">•</span>
+                            <span className="text-[10px] text-zinc-500 dark:text-zinc-500 font-mono">
+                              {data.systemConfig?.copyrightSubtext || data.profile.copyrightSubtext}
+                            </span>
+                          </>
+                        )}
+                      </div>
 
 
                     </div>

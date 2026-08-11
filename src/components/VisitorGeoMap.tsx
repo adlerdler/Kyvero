@@ -122,7 +122,7 @@ const INITIAL_REGIONS: GeoRegionData[] = [
 ];
 
 export const VisitorGeoMap: React.FC = () => {
-  const { language } = useApp();
+  const { language, t } = useApp();
   const [selectedRegion, setSelectedRegion] = useState<GeoRegionData | null>(null);
   const [activeScope, setActiveScope] = useState<'all' | 'domestic' | 'overseas'>('all');
   const [mapSeed, setMapSeed] = useState<number>(0);
@@ -130,6 +130,28 @@ export const VisitorGeoMap: React.FC = () => {
     visible: boolean;
     data: GeoRegionData | null;
   }>({ visible: false, data: null });
+
+  const getRegionName = (id: string, nameEn: string): string => {
+    switch (id) {
+      case 'cn-east': return t.regionNamesEastChina;
+      case 'cn-south': return t.regionNamesSouthChina;
+      case 'cn-north': return t.regionNamesNorthChina;
+      case 'us-west': return t.regionNamesUsWest;
+      case 'eu-central': return t.regionNamesEuCentral;
+      case 'ap-singapore': return t.regionNamesSingapore;
+      case 'jp-tokyo': return t.regionNamesTokyo;
+      default: return nameEn;
+    }
+  };
+
+  const getRegionCities = (id: string, defaultCities: string[]): string => {
+    switch (id) {
+      case 'cn-east': return t.citiesCnEast;
+      case 'cn-south': return t.citiesCnSouth;
+      case 'cn-north': return t.citiesCnNorth;
+      default: return defaultCities.join(' · ');
+    }
+  };
 
   // Filtered dataset
   const displayRegions = useMemo(() => {
@@ -178,7 +200,7 @@ export const VisitorGeoMap: React.FC = () => {
                     : 'text-black dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-slate-700'
                 }`}
               >
-                全部区域
+                {t.allRegions}
               </button>
               <button
                 onClick={() => setActiveScope('domestic')}
@@ -188,7 +210,7 @@ export const VisitorGeoMap: React.FC = () => {
                     : 'text-black dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-slate-700'
                 }`}
               >
-                国内大区
+                {t.domesticRegions}
               </button>
               <button
                 onClick={() => setActiveScope('overseas')}
@@ -198,7 +220,7 @@ export const VisitorGeoMap: React.FC = () => {
                     : 'text-black dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-slate-700'
                 }`}
               >
-                海外节点
+                {t.overseasNodes}
               </button>
             </div>
           </div>
@@ -288,7 +310,7 @@ export const VisitorGeoMap: React.FC = () => {
                         strokeLinejoin: 'miter'
                       }}
                     >
-                      {language === 'zh' ? region.nameZh.split(' - ')[1] || region.nameZh : region.nameEn} ({region.sharePercent}%)
+                      {getRegionName(region.id, region.nameEn)} ({region.sharePercent}%)
                     </text>
                   </Marker>
                 );
@@ -301,23 +323,25 @@ export const VisitorGeoMap: React.FC = () => {
             <div className="absolute bottom-4 left-4 bg-black text-white border-3 border-cyan-300 px-4 py-3 rounded-2xl text-xs font-black shadow-[5px_5px_0px_0px_#38BDF8] z-30 pointer-events-none">
               <div className="flex items-center gap-1.5 text-cyan-300 font-mono text-xs mb-1.5">
                 <MapPin className="w-4 h-4" />
-                <span className="text-sm font-black">{tooltip.data.nameZh}</span>
+                <span className="text-sm font-black">{getRegionName(tooltip.data.id, tooltip.data.nameZh)}</span>
               </div>
               <div className="flex items-center justify-between gap-8 font-mono">
-                <span>实时访客量:</span>
-                <span className="text-yellow-300 font-black text-sm">{tooltip.data.visitors.toLocaleString()} 次</span>
+                <span>{t.realtimeVisitsLabel}:</span>
+                <span className="text-yellow-300 font-black text-sm">{tooltip.data.visitors.toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between gap-8 font-mono text-xs text-zinc-300 mt-1">
-                <span>全球流量占比:</span>
+                <span>{t.globalShareLabel}:</span>
                 <span className="text-emerald-400 font-bold">{tooltip.data.sharePercent}%</span>
               </div>
               <div className="flex items-center justify-between gap-8 font-mono text-xs text-zinc-300 mt-1">
-                <span>边缘节点延迟:</span>
+                <span>{t.edgeLatencyLabel}:</span>
                 <span className="text-rose-400 font-bold">{tooltip.data.latencyMs} ms</span>
               </div>
               <div className="flex items-center justify-between gap-8 font-mono text-xs text-zinc-300 mt-1">
-                <span>核心活跃城市:</span>
-                <span className="text-cyan-200 font-bold">{tooltip.data.topCities.join(', ')}</span>
+                <span>{t.activeCitiesLabel}:</span>
+                <span className="text-cyan-200 font-bold">
+                  {getRegionCities(tooltip.data.id, tooltip.data.topCities)}
+                </span>
               </div>
             </div>
           )}
@@ -326,9 +350,9 @@ export const VisitorGeoMap: React.FC = () => {
         {/* Map Footer Metrics & Quick Selector Cards */}
         <div className="mt-4 pt-4 border-t-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4 text-xs font-mono font-bold text-zinc-700 dark:text-zinc-300">
-            <span>当前筛选区域总访客: <strong className="text-black dark:text-white font-black text-sm">{totalScopeVisitors.toLocaleString()}</strong></span>
+            <span>{t.totalScopeVisits}: <strong className="text-black dark:text-white font-black text-sm">{totalScopeVisitors.toLocaleString()}</strong></span>
             <span className="hidden md:inline">|</span>
-            <span>CDN 节点状态: <strong className="text-emerald-600 font-black">100% ONLINE</strong></span>
+            <span>{t.cdnStatusLabel}: <strong className="text-emerald-600 font-black">{t.cdnStatusValue}</strong></span>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -343,7 +367,7 @@ export const VisitorGeoMap: React.FC = () => {
                 }`}
               >
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: reg.country === 'CN' ? '#ff4d4d' : '#38bdf8' }} />
-                <span>{language === 'zh' ? reg.nameZh.split(' - ')[1] || reg.nameZh : reg.nameEn}</span>
+                <span>{getRegionName(reg.id, reg.nameEn)}</span>
                 <span className="font-mono text-[10px] opacity-80">({reg.sharePercent}%)</span>
               </button>
             ))}
@@ -364,17 +388,19 @@ export const VisitorGeoMap: React.FC = () => {
             </div>
             <div>
               <h5 className="font-black text-sm text-black dark:text-white flex items-center gap-2">
-                <span>{selectedRegion.nameZh} 详细数据深度诊断</span>
+                <span>{getRegionName(selectedRegion.id, selectedRegion.nameZh)} {t.deepDiagnosisTitle}</span>
                 <span className="bg-black text-yellow-300 text-[10px] font-mono px-2 py-0.5 rounded border border-black">
-                  LATENCY {selectedRegion.latencyMs}MS
+                  {t.latencyLabel} {selectedRegion.latencyMs}MS
                 </span>
               </h5>
               <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 mt-1">
-                主要来源城市: <span className="font-mono font-black text-black dark:text-cyan-300">{selectedRegion.topCities.join(' · ')}</span>
+                {t.primaryCitiesLabel}: <span className="font-mono font-black text-black dark:text-cyan-300">
+                  {getRegionCities(selectedRegion.id, selectedRegion.topCities)}
+                </span>
                 {' | '}
-                近7日增长率: <span className="font-mono font-black text-emerald-700 dark:text-emerald-400">{selectedRegion.growth}</span>
+                {t.growthLabel7d}: <span className="font-mono font-black text-emerald-700 dark:text-emerald-400">{selectedRegion.growth}</span>
                 {' | '}
-                访客总数: <span className="font-mono font-black text-black dark:text-white">{selectedRegion.visitors.toLocaleString()}</span>
+                {t.totalVisitorsLabel}: <span className="font-mono font-black text-black dark:text-white">{selectedRegion.visitors.toLocaleString()}</span>
               </p>
             </div>
           </div>
@@ -383,7 +409,7 @@ export const VisitorGeoMap: React.FC = () => {
             onClick={() => setSelectedRegion(null)}
             className="text-xs font-black bg-white text-black border-2 border-black px-4 py-2 rounded-xl shadow-[2px_2px_0px_0px_#000] hover:bg-zinc-100 self-end md:self-auto"
           >
-            关闭分析
+            {t.closeBtn}
           </button>
         </motion.div>
       )}
