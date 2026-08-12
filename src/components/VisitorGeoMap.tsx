@@ -1,181 +1,104 @@
 import React, { useState, useMemo } from 'react';
-import { ComposableMap, Geographies, Geography, Marker, ZoomableGroup } from 'react-simple-maps';
-import { motion } from 'motion/react';
-import {
-  Globe,
-  MapPin,
-  RefreshCw,
-  Server,
-  Activity,
-  Zap
-} from 'lucide-react';
+import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
+import { MapPin } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { initialAnalytics } from '../data/analytics';
 
-export interface GeoRegionData {
-  id: string;
-  nameZh: string;
+export interface CountryGeoData {
+  numericId: string;
+  iso2: string;
   nameEn: string;
-  country: string;
-  flag: string;
-  coordinates: [number, number]; // [longitude, latitude]
-  visitors: number;
-  sharePercent: number;
-  topCities: string[];
-  latencyMs: number;
-  growth: string;
+  nameZh: string;
 }
 
 const GEO_URL = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
-const INITIAL_REGIONS: GeoRegionData[] = [
-  {
-    id: 'cn-east',
-    nameZh: '中国 - 华东地区',
-    nameEn: 'China - East Region',
-    country: 'CN',
-    flag: 'cn',
-    coordinates: [121.47, 31.23], // Shanghai
-    visitors: 14280,
-    sharePercent: 38.5,
-    topCities: ['上海', '杭州', '南京', '苏州'],
-    latencyMs: 18,
-    growth: '+22.4%'
-  },
-  {
-    id: 'cn-south',
-    nameZh: '中国 - 华南地区',
-    nameEn: 'China - South Region',
-    country: 'CN',
-    flag: 'cn',
-    coordinates: [113.26, 23.13], // Guangzhou
-    visitors: 9850,
-    sharePercent: 26.5,
-    topCities: ['深圳', '广州', '东莞', '佛山'],
-    latencyMs: 24,
-    growth: '+18.1%'
-  },
-  {
-    id: 'cn-north',
-    nameZh: '中国 - 华北地区',
-    nameEn: 'China - North Region',
-    country: 'CN',
-    flag: 'cn',
-    coordinates: [116.40, 39.90], // Beijing
-    visitors: 6200,
-    sharePercent: 16.7,
-    topCities: ['北京', '天津', '济南', '青岛'],
-    latencyMs: 28,
-    growth: '+11.5%'
-  },
-  {
-    id: 'us-west',
-    nameZh: '北美 - 美西 (加州)',
-    nameEn: 'US West (California)',
-    country: 'US',
-    flag: 'us',
-    coordinates: [-122.41, 37.77], // San Francisco
-    visitors: 3410,
-    sharePercent: 9.2,
-    topCities: ['San Francisco', 'Los Angeles', 'Seattle'],
-    latencyMs: 145,
-    growth: '+34.8%'
-  },
-  {
-    id: 'eu-central',
-    nameZh: '欧洲 - 中欧 (德国)',
-    nameEn: 'Europe Central (Germany)',
-    country: 'DE',
-    flag: 'de',
-    coordinates: [8.68, 50.11], // Frankfurt
-    visitors: 1650,
-    sharePercent: 4.4,
-    topCities: ['Frankfurt', 'Berlin', 'Munich'],
-    latencyMs: 195,
-    growth: '+8.3%'
-  },
-  {
-    id: 'ap-singapore',
-    nameZh: '东南亚 - 新加坡',
-    nameEn: 'SE Asia - Singapore',
-    country: 'SG',
-    flag: 'sg',
-    coordinates: [103.81, 1.35], // Singapore
-    visitors: 1120,
-    sharePercent: 3.0,
-    topCities: ['Singapore', 'Jurong'],
-    latencyMs: 52,
-    growth: '+15.2%'
-  },
-  {
-    id: 'jp-tokyo',
-    nameZh: '东亚 - 日本东京',
-    nameEn: 'East Asia - Japan Tokyo',
-    country: 'JP',
-    flag: 'jp',
-    coordinates: [139.69, 35.68], // Tokyo
-    visitors: 820,
-    sharePercent: 2.2,
-    topCities: ['Tokyo', 'Osaka', 'Yokohama'],
-    latencyMs: 68,
-    growth: '+19.6%'
-  }
+const COUNTRY_DATABASE: CountryGeoData[] = [
+  { numericId: '156', iso2: 'CN', nameEn: 'China', nameZh: '中国' },
+  { numericId: '840', iso2: 'US', nameEn: 'United States', nameZh: '美国' },
+  { numericId: '392', iso2: 'JP', nameEn: 'Japan', nameZh: '日本' },
+  { numericId: '276', iso2: 'DE', nameEn: 'Germany', nameZh: '德国' },
+  { numericId: '702', iso2: 'SG', nameEn: 'Singapore', nameZh: '新加坡' },
+  { numericId: '826', iso2: 'GB', nameEn: 'United Kingdom', nameZh: '英国' },
+  { numericId: '250', iso2: 'FR', nameEn: 'France', nameZh: '法国' },
+  { numericId: '124', iso2: 'CA', nameEn: 'Canada', nameZh: '加拿大' },
+  { numericId: '036', iso2: 'AU', nameEn: 'Australia', nameZh: '澳大利亚' },
+  { numericId: '410', iso2: 'KR', nameEn: 'South Korea', nameZh: '韩国' }
 ];
 
+function getCountryFromIpHash(ipHash: string): CountryGeoData {
+  if (!ipHash) return COUNTRY_DATABASE[0];
+  let hashVal = 0;
+  for (let i = 0; i < ipHash.length; i++) {
+    hashVal = (hashVal * 31 + ipHash.charCodeAt(i)) & 0x7fffffff;
+  }
+  return COUNTRY_DATABASE[hashVal % COUNTRY_DATABASE.length];
+}
+
 export const VisitorGeoMap: React.FC = () => {
-  const { language, t } = useApp();
-  const [selectedRegion, setSelectedRegion] = useState<GeoRegionData | null>(null);
+  const { data, language, t } = useApp();
   const [activeScope, setActiveScope] = useState<'all' | 'domestic' | 'overseas'>('all');
-  const [mapSeed, setMapSeed] = useState<number>(0);
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
-    data: GeoRegionData | null;
-  }>({ visible: false, data: null });
+    countryName: string;
+    visits: number;
+    ipHashesCount: number;
+  }>({ visible: false, countryName: '', visits: 0, ipHashesCount: 0 });
 
-  const getRegionName = (id: string, nameEn: string): string => {
-    switch (id) {
-      case 'cn-east': return t.regionNamesEastChina;
-      case 'cn-south': return t.regionNamesSouthChina;
-      case 'cn-north': return t.regionNamesNorthChina;
-      case 'us-west': return t.regionNamesUsWest;
-      case 'eu-central': return t.regionNamesEuCentral;
-      case 'ap-singapore': return t.regionNamesSingapore;
-      case 'jp-tokyo': return t.regionNamesTokyo;
-      default: return nameEn;
-    }
+  // Source analytics records directly from context or analytics.ts
+  const analyticsList = useMemo(() => {
+    return (data?.analytics && data.analytics.length > 0) ? data.analytics : initialAnalytics;
+  }, [data?.analytics]);
+
+  // Map visitor entries by ipHash into country stats
+  const countryStatsMap = useMemo(() => {
+    const map = new Map<string, { country: CountryGeoData; visits: number; ipHashes: Set<string> }>();
+
+    COUNTRY_DATABASE.forEach(c => {
+      map.set(c.numericId, { country: c, visits: 0, ipHashes: new Set() });
+    });
+
+    analyticsList.forEach(entry => {
+      const country = getCountryFromIpHash(entry.ipHash || '');
+      const existing = map.get(country.numericId);
+      if (existing) {
+        existing.visits += 1;
+        if (entry.ipHash) existing.ipHashes.add(entry.ipHash);
+      }
+    });
+
+    return map;
+  }, [analyticsList]);
+
+  // Filter stats based on active scope
+  const filteredCountryStats = useMemo(() => {
+    const result = new Map<string, { country: CountryGeoData; visits: number; ipHashes: Set<string> }>();
+    countryStatsMap.forEach((val, key) => {
+      if (activeScope === 'domestic' && val.country.iso2 !== 'CN') return;
+      if (activeScope === 'overseas' && val.country.iso2 === 'CN') return;
+      result.set(key, val);
+    });
+    return result;
+  }, [countryStatsMap, activeScope]);
+
+  // Maximum visits for dynamic color scale calculation
+  const maxVisits = useMemo(() => {
+    let max = 0;
+    filteredCountryStats.forEach(v => {
+      if (v.visits > max) max = v.visits;
+    });
+    return max || 1;
+  }, [filteredCountryStats]);
+
+  // Get color for a country based on visits
+  const getCountryColor = (visits: number): string => {
+    if (visits === 0) return "#f1f5f9"; // Slate 100 for no traffic
+    const ratio = visits / maxVisits;
+    if (ratio >= 0.8) return "#0284c7"; // Sky 600 - highest
+    if (ratio >= 0.5) return "#38bdf8"; // Sky 400 - high
+    if (ratio >= 0.25) return "#7dd3fc"; // Sky 300 - medium
+    return "#bae6fd"; // Sky 200 - low
   };
-
-  const getRegionCities = (id: string, defaultCities: string[]): string => {
-    switch (id) {
-      case 'cn-east': return t.citiesCnEast;
-      case 'cn-south': return t.citiesCnSouth;
-      case 'cn-north': return t.citiesCnNorth;
-      default: return defaultCities.join(' · ');
-    }
-  };
-
-  // Filtered dataset
-  const displayRegions = useMemo(() => {
-    let list = INITIAL_REGIONS.map(r => ({
-      ...r,
-      visitors: Math.max(100, Math.floor(r.visitors + Math.sin(mapSeed * 13 + r.visitors) * 450))
-    }));
-
-    if (activeScope === 'domestic') {
-      list = list.filter(r => r.country === 'CN');
-    } else if (activeScope === 'overseas') {
-      list = list.filter(r => r.country !== 'CN');
-    }
-
-    const total = list.reduce((sum, r) => sum + r.visitors, 0);
-    return list.map(r => ({
-      ...r,
-      sharePercent: Number(((r.visitors / (total || 1)) * 100).toFixed(1))
-    })).sort((a, b) => b.visitors - a.visitors);
-  }, [activeScope, mapSeed]);
-
-  const totalScopeVisitors = useMemo(() => {
-    return displayRegions.reduce((sum, r) => sum + r.visitors, 0);
-  }, [displayRegions]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -185,11 +108,11 @@ export const VisitorGeoMap: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <span className="w-3 h-3 rounded-full bg-cyan-500 animate-ping" />
             <span className="text-xs font-black font-mono text-black dark:text-zinc-200 uppercase tracking-wide">
-              GLOBAL_RADAR_MAP // REAL-TIME GEOLOCATION & TRAFFIC NODES
+              GLOBAL_RADAR_MAP // CHOROPLETH TRAFFIC HEATMAP
             </span>
           </div>
 
-          {/* Scope Controls on the right */}
+          {/* Scope Controls */}
           <div className="flex items-center gap-2">
             <div className="flex items-center bg-white dark:bg-slate-800 border-2 border-black dark:border-zinc-200 rounded-xl p-0.5 shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8]">
               <button
@@ -239,180 +162,83 @@ export const VisitorGeoMap: React.FC = () => {
             <ZoomableGroup zoom={1} maxZoom={5}>
               <Geographies geography={GEO_URL}>
                 {({ geographies }) =>
-                  geographies.map(geo => (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      fill="#e2e8f0"
-                      stroke="#cbd5e1"
-                      strokeWidth={0.6}
-                      style={{
-                        default: { fill: "#f1f5f9", outline: "none" },
-                        hover: { fill: "#cbd5e1", outline: "none" },
-                        pressed: { fill: "#94a3b8", outline: "none" }
-                      }}
-                    />
-                  ))
+                  geographies.map(geo => {
+                    const rawId = String(geo.id);
+                    const numericId = rawId.padStart(3, '0');
+                    const stat = filteredCountryStats.get(numericId) || filteredCountryStats.get(rawId);
+                    const visits = stat ? stat.visits : 0;
+                    const isVisited = visits > 0;
+
+                    const fillColor = getCountryColor(visits);
+
+                    const countryDisplayName = language === 'zh'
+                      ? (stat?.country.nameZh || geo.properties.name)
+                      : (stat?.country.nameEn || geo.properties.name);
+
+                    return (
+                      <Geography
+                        key={geo.rsmKey}
+                        geography={geo}
+                        fill={fillColor}
+                        stroke="#94a3b8"
+                        strokeWidth={0.6}
+                        onMouseEnter={() => {
+                          setTooltip({
+                            visible: true,
+                            countryName: countryDisplayName,
+                            visits: visits,
+                            ipHashesCount: stat ? stat.ipHashes.size : 0
+                          });
+                        }}
+                        onMouseLeave={() => {
+                          setTooltip(prev => ({ ...prev, visible: false }));
+                        }}
+                        style={{
+                          default: { outline: "none", transition: "fill 150ms ease" },
+                          hover: { fill: isVisited ? "#0369a1" : "#cbd5e1", outline: "none", cursor: "pointer" },
+                          pressed: { outline: "none" }
+                        }}
+                      />
+                    );
+                  })
                 }
               </Geographies>
-
-              {/* Render Markers for each region with enhanced styling */}
-              {displayRegions.map(region => {
-                const isCN = region.country === 'CN';
-                const markerColor = isCN ? '#ff4d4d' : '#38bdf8';
-                const scaleRadius = Math.max(10, Math.min(26, Math.sqrt(region.visitors) / 8));
-
-                return (
-                  <Marker
-                    key={region.id}
-                    coordinates={region.coordinates}
-                    onClick={() => setSelectedRegion(region)}
-                    onMouseEnter={() => setTooltip({ visible: true, data: region })}
-                    onMouseLeave={() => setTooltip({ visible: false, data: null })}
-                    style={{
-                      default: { cursor: 'pointer' },
-                      hover: { cursor: 'pointer' },
-                      pressed: { cursor: 'pointer' }
-                    }}
-                  >
-                    {/* Outer Pulse ring */}
-                    <circle
-                      r={scaleRadius + 8}
-                      fill={markerColor}
-                      opacity={0.3}
-                      stroke="#000"
-                      strokeWidth={1.2}
-                    />
-                    {/* Main Node Bubble */}
-                    <circle
-                      r={scaleRadius}
-                      fill={markerColor}
-                      stroke="#000"
-                      strokeWidth={2.5}
-                    />
-                    <circle
-                      r={3.5}
-                      fill="#000"
-                    />
-                    {/* Prominent Label */}
-                    <text
-                      textAnchor="middle"
-                      y={scaleRadius + 16}
-                      style={{
-                        fontFamily: 'sans-serif',
-                        fontSize: '11px',
-                        fontWeight: '900',
-                        fill: '#000000',
-                        paintOrder: 'stroke',
-                        stroke: '#ffffff',
-                        strokeWidth: '3.5px',
-                        strokeLinecap: 'butt',
-                        strokeLinejoin: 'miter'
-                      }}
-                    >
-                      {getRegionName(region.id, region.nameEn)} ({region.sharePercent}%)
-                    </text>
-                  </Marker>
-                );
-              })}
             </ZoomableGroup>
           </ComposableMap>
 
+          {/* Choropleth Heatmap Color Legend */}
+          <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-slate-900/90 border-2 border-black dark:border-zinc-300 px-3 py-2 rounded-xl text-[10px] font-black font-mono shadow-[3px_3px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] flex flex-col gap-1.5 z-20 pointer-events-none">
+            <span className="text-zinc-600 dark:text-zinc-400 uppercase tracking-wider text-[9px]">Traffic Level</span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3.5 h-3.5 rounded border border-black/40 bg-[#f1f5f9]" />
+              <span className="text-zinc-600 dark:text-zinc-400">0</span>
+              <span className="w-3.5 h-3.5 rounded border border-black/40 bg-[#bae6fd]" />
+              <span className="w-3.5 h-3.5 rounded border border-black/40 bg-[#7dd3fc]" />
+              <span className="w-3.5 h-3.5 rounded border border-black/40 bg-[#38bdf8]" />
+              <span className="w-3.5 h-3.5 rounded border border-black/40 bg-[#0284c7]" />
+              <span className="text-black dark:text-white font-bold">Max ({maxVisits})</span>
+            </div>
+          </div>
+
           {/* Hover Tooltip Popup Overlay */}
-          {tooltip.visible && tooltip.data && (
+          {tooltip.visible && (
             <div className="absolute bottom-4 left-4 bg-black text-white border-3 border-cyan-300 px-4 py-3 rounded-2xl text-xs font-black shadow-[5px_5px_0px_0px_#38BDF8] z-30 pointer-events-none">
               <div className="flex items-center gap-1.5 text-cyan-300 font-mono text-xs mb-1.5">
                 <MapPin className="w-4 h-4" />
-                <span className="text-sm font-black">{getRegionName(tooltip.data.id, tooltip.data.nameZh)}</span>
+                <span className="text-sm font-black">{tooltip.countryName}</span>
               </div>
               <div className="flex items-center justify-between gap-8 font-mono">
-                <span>{t.realtimeVisitsLabel}:</span>
-                <span className="text-yellow-300 font-black text-sm">{tooltip.data.visitors.toLocaleString()}</span>
+                <span>{t.realtimeVisitsLabel || 'Visits'}:</span>
+                <span className="text-yellow-300 font-black text-sm">{tooltip.visits.toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between gap-8 font-mono text-xs text-zinc-300 mt-1">
-                <span>{t.globalShareLabel}:</span>
-                <span className="text-emerald-400 font-bold">{tooltip.data.sharePercent}%</span>
-              </div>
-              <div className="flex items-center justify-between gap-8 font-mono text-xs text-zinc-300 mt-1">
-                <span>{t.edgeLatencyLabel}:</span>
-                <span className="text-rose-400 font-bold">{tooltip.data.latencyMs} ms</span>
-              </div>
-              <div className="flex items-center justify-between gap-8 font-mono text-xs text-zinc-300 mt-1">
-                <span>{t.activeCitiesLabel}:</span>
-                <span className="text-cyan-200 font-bold">
-                  {getRegionCities(tooltip.data.id, tooltip.data.topCities)}
-                </span>
+                <span>IP Hash Count:</span>
+                <span className="text-emerald-400 font-bold">{tooltip.ipHashesCount}</span>
               </div>
             </div>
           )}
         </div>
-
-        {/* Map Footer Metrics & Quick Selector Cards */}
-        <div className="mt-4 pt-4 border-t-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4 text-xs font-mono font-bold text-zinc-700 dark:text-zinc-300">
-            <span>{t.totalScopeVisits}: <strong className="text-black dark:text-white font-black text-sm">{totalScopeVisitors.toLocaleString()}</strong></span>
-            <span className="hidden md:inline">|</span>
-            <span>{t.cdnStatusLabel}: <strong className="text-emerald-600 font-black">{t.cdnStatusValue}</strong></span>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {displayRegions.map(reg => (
-              <button
-                key={reg.id}
-                onClick={() => setSelectedRegion(reg)}
-                className={`px-3 py-1.5 rounded-xl border-2 border-black text-xs font-black transition-all flex items-center gap-1.5 ${
-                  selectedRegion?.id === reg.id
-                    ? 'bg-amber-300 text-black shadow-[2px_2px_0px_0px_#000]'
-                    : 'bg-white dark:bg-slate-800 text-black dark:text-white hover:bg-cyan-100 shadow-[2px_2px_0px_0px_#000]'
-                }`}
-              >
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: reg.country === 'CN' ? '#ff4d4d' : '#38bdf8' }} />
-                <span>{getRegionName(reg.id, reg.nameEn)}</span>
-                <span className="font-mono text-[10px] opacity-80">({reg.sharePercent}%)</span>
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
-
-      {/* Region Details Modal / Panel */}
-      {selectedRegion && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-cyan-100 dark:bg-cyan-950 border-3 border-black p-5 rounded-2xl shadow-[5px_5px_0px_0px_#000] flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-black text-cyan-300 rounded-xl flex items-center justify-center font-black shadow-[2px_2px_0px_0px_#000]">
-              <Server className="w-6 h-6 stroke-[2.5]" />
-            </div>
-            <div>
-              <h5 className="font-black text-sm text-black dark:text-white flex items-center gap-2">
-                <span>{getRegionName(selectedRegion.id, selectedRegion.nameZh)} {t.deepDiagnosisTitle}</span>
-                <span className="bg-black text-yellow-300 text-[10px] font-mono px-2 py-0.5 rounded border border-black">
-                  {t.latencyLabel} {selectedRegion.latencyMs}MS
-                </span>
-              </h5>
-              <p className="text-xs font-bold text-zinc-800 dark:text-zinc-200 mt-1">
-                {t.primaryCitiesLabel}: <span className="font-mono font-black text-black dark:text-cyan-300">
-                  {getRegionCities(selectedRegion.id, selectedRegion.topCities)}
-                </span>
-                {' | '}
-                {t.growthLabel7d}: <span className="font-mono font-black text-emerald-700 dark:text-emerald-400">{selectedRegion.growth}</span>
-                {' | '}
-                {t.totalVisitorsLabel}: <span className="font-mono font-black text-black dark:text-white">{selectedRegion.visitors.toLocaleString()}</span>
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setSelectedRegion(null)}
-            className="text-xs font-black bg-white text-black border-2 border-black px-4 py-2 rounded-xl shadow-[2px_2px_0px_0px_#000] hover:bg-zinc-100 self-end md:self-auto"
-          >
-            {t.closeBtn}
-          </button>
-        </motion.div>
-      )}
     </div>
   );
 };

@@ -198,9 +198,9 @@ function MainLayout() {
                         </div>
                       </div>
 
-                      {/* Icon-Only Dedicated Footer Links (Configured in System Settings) */}
+                      {/* Icon-Only Dedicated Footer Links (Configured in Footer Links Settings) */}
                       {(() => {
-                        const linksToUse = data.systemConfig?.footerLinks || data.footerLinks || [];
+                        const linksToUse = data.footerLinks || [];
                         return linksToUse.length > 0 && (
                           <div className="flex flex-wrap items-center gap-2">
                             {linksToUse.map(link => (

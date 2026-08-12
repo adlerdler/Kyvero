@@ -47,10 +47,25 @@ export interface TranslationDictionary {
   adminPortalSubtitle: string;
   passwordLabel: string;
   passwordPlaceholder: string;
+  usernameLabel: string;
+  usernamePlaceholder: string;
   loginButton: string;
   logoutButton: string;
   demoKeyButton: string;
   invalidPassword: string;
+  invalidUsernameOrPassword: string;
+  changePassword: string;
+  changePasswordTitle: string;
+  currentPassword: string;
+  currentPasswordPlaceholder: string;
+  newPassword: string;
+  newPasswordPlaceholder: string;
+  confirmPassword: string;
+  confirmPasswordPlaceholder: string;
+  passwordChangedSuccess: string;
+  currentPasswordIncorrect: string;
+  passwordsDoNotMatch: string;
+  userAvatarMenu: string;
   
   // Admin Tabs
   tabProfile: string;
@@ -83,6 +98,17 @@ export interface TranslationDictionary {
   footerLinkUrl: string;
   footerLinkIconType: string;
   
+  // Experiences Management
+  experienceSection: string;
+  addExperienceBtn: string;
+  editExperienceBtn: string;
+  companyLabel: string;
+  roleLabel: string;
+  startDateLabel: string;
+  endDateLabel: string;
+  descriptionLabel: string;
+  technologiesLabel: string;
+
   // Skills Management
   tabSkills: string;
   addSkillBtn: string;
@@ -290,6 +316,9 @@ export interface TranslationDictionary {
   toastFooterLinkAdded: string;
   toastFooterLinkUpdated: string;
   toastFooterLinkDeleted: string;
+  toastExperienceAdded: string;
+  toastExperienceUpdated: string;
+  toastExperienceDeleted: string;
   toastSkillAdded: string;
   toastSkillUpdated: string;
   toastSkillDeleted: string;
@@ -299,6 +328,8 @@ export interface TranslationDictionary {
   toastTranslationsReset: string;
   toastThemeDark: string;
   toastThemeLight: string;
+  loaderSystemInitializing: string;
+  loaderLoadingStatus: string;
 
   // Newly Refactored Toast & Tag Keys
   pdfExportSuccessToast: string;

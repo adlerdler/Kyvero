@@ -1,7 +1,26 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { SiteData, LanguageCode, Project, Profile, SocialLink, FooterLink, TechSkill, MediaItem, SystemConfig, Experience } from '../types';
-import { INITIAL_SITE_DATA } from '../data/initialData';
+import { SiteData, LanguageCode, Project, Profile, SocialLink, FooterLink, TechSkill, MediaItem, SystemConfig, Experience, User, VisitorLogEntry } from '../types';
+import { INITIAL_SITE_DATA, initialUsers } from '../data/initialData';
 import { DEFAULT_LANGUAGE, TRANSLATIONS, TranslationDictionary } from '../i18n/languages';
+import {
+  fetchAllSiteDataFromSupabase,
+  syncProfileToSupabase,
+  syncSystemConfigToSupabase,
+  syncProjectToSupabase,
+  deleteProjectFromSupabase,
+  syncTechSkillToSupabase,
+  deleteTechSkillFromSupabase,
+  syncExperienceToSupabase,
+  deleteExperienceFromSupabase,
+  syncSocialLinkToSupabase,
+  deleteSocialLinkFromSupabase,
+  syncFooterLinkToSupabase,
+  deleteFooterLinkFromSupabase,
+  syncMediaItemToSupabase,
+  deleteMediaItemFromSupabase,
+  syncVisitorLogToSupabase,
+  syncUserToSupabase
+} from '../services/supabaseService';
 
 interface AppContextType {
   data: SiteData;
@@ -15,6 +34,8 @@ interface AppContextType {
   activeCategory: string;
   searchQuery: string;
   toastMessage: string | null;
+  currentUser: User | null;
+  users: User[];
   
   // Actions
   setLanguage: (lang: LanguageCode) => void;
@@ -22,8 +43,9 @@ interface AppContextType {
   setCurrentView: (view: 'home' | 'admin') => void;
   openAdminModal: () => void;
   closeAdminModal: () => void;
-  loginAdmin: (password: string) => boolean;
+  loginAdmin: (password: string, username?: string) => boolean;
   logoutAdmin: () => void;
+  updatePassword: (currentPassword: string, newPassword: string) => { success: boolean; messageKey?: keyof TranslationDictionary };
   setSelectedProject: (project: Project | null) => void;
   setActiveCategory: (cat: string) => void;
   setSearchQuery: (query: string) => void;
@@ -70,80 +92,68 @@ const STORAGE_KEY_THEME = 'manga_portfolio_theme_v1';
 const AppContext = createContext<AppContextType | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load initial or persisted site data
+  // Load initial site data
   const [data, setData] = useState<SiteData>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_DATA);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.profile && Array.isArray(parsed.projects)) {
-          if (!parsed.profile.avatarUrl || parsed.profile.avatarUrl.includes('data:image/svg+xml')) {
-            parsed.profile.avatarUrl = INITIAL_SITE_DATA.profile.avatarUrl;
-          }
-          if (!parsed.footerLinks || !Array.isArray(parsed.footerLinks)) {
-            parsed.footerLinks = INITIAL_SITE_DATA.footerLinks;
-          }
-          if (!parsed.techSkills || !Array.isArray(parsed.techSkills)) {
-            parsed.techSkills = INITIAL_SITE_DATA.techSkills;
-          } else {
-            parsed.techSkills = parsed.techSkills.map((s: any) => {
-              if (s.tagline && typeof s.tagline === 'string') {
-                return {
-                  ...s,
-                  tagline: {
-                    'zh-CN': s.tagline,
-                    'zh-TW': '',
-                    'en': '',
-                    'ja': '',
-                    'ko': ''
-                  }
-                };
-              }
-              return s;
-            });
-          }
-          if (!parsed.mediaItems || !Array.isArray(parsed.mediaItems)) {
-            parsed.mediaItems = INITIAL_SITE_DATA.mediaItems;
-          }
-          if (!parsed.experiences || !Array.isArray(parsed.experiences)) {
-            parsed.experiences = INITIAL_SITE_DATA.experiences;
-          }
-          
-          const fieldsToMigrate = ['title', 'subtitle', 'location', 'speechBubbleText'] as const;
-          fieldsToMigrate.forEach(field => {
-            if (typeof parsed.profile[field] === 'string') {
-              const strVal = parsed.profile[field] as string;
-              const defaultObj = INITIAL_SITE_DATA.profile[field] as Record<LanguageCode, string>;
-              const defaultZhCn = defaultObj['zh-CN'];
-              
-              if (strVal === defaultZhCn || !strVal) {
-                parsed.profile[field] = defaultObj;
-              } else {
-                parsed.profile[field] = {
-                  'zh-CN': strVal,
-                  'zh-TW': '',
-                  'en': '',
-                  'ja': '',
-                  'ko': ''
-                };
-              }
-            }
-          });
-
-          if (!parsed.profile.bioLines || Array.isArray(parsed.profile.bioLines)) {
-            const oldArr = Array.isArray(parsed.profile.bioLines) ? parsed.profile.bioLines : null;
-            parsed.profile.bioLines = {
-              ...INITIAL_SITE_DATA.profile.bioLines,
-              ...(oldArr ? { 'zh-CN': oldArr } : {})
-            };
-          }
-          return parsed;
-        }
+        return {
+          ...INITIAL_SITE_DATA,
+          ...parsed,
+          users: (parsed.users && parsed.users.length > 0) ? parsed.users : INITIAL_SITE_DATA.users
+        };
       }
     } catch (e) {
-      console.warn('Failed to parse saved portfolio data from localStorage', e);
+      // fallback
     }
     return INITIAL_SITE_DATA;
+  });
+
+  // Fetch initial site data from Supabase if configured
+  useEffect(() => {
+    async function loadSupabaseData() {
+      const dbData = await fetchAllSiteDataFromSupabase();
+      if (dbData) {
+        setData(prev => ({
+          ...prev,
+          ...dbData,
+          profile: dbData.profile || prev.profile,
+          systemConfig: dbData.systemConfig || prev.systemConfig,
+          projects: dbData.projects && dbData.projects.length > 0 ? dbData.projects : prev.projects,
+          techSkills: dbData.techSkills && dbData.techSkills.length > 0 ? dbData.techSkills : prev.techSkills,
+          experiences: dbData.experiences && dbData.experiences.length > 0 ? dbData.experiences : prev.experiences,
+          socialLinks: dbData.socialLinks && dbData.socialLinks.length > 0 ? dbData.socialLinks : prev.socialLinks,
+          footerLinks: dbData.footerLinks && dbData.footerLinks.length > 0 ? dbData.footerLinks : prev.footerLinks,
+          mediaItems: dbData.mediaItems && dbData.mediaItems.length > 0 ? dbData.mediaItems : prev.mediaItems,
+          users: dbData.users && dbData.users.length > 0 ? dbData.users : prev.users
+        }));
+      }
+    }
+    loadSupabaseData();
+  }, []);
+
+  // Save site data to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(data));
+    } catch (e) {
+      // ignore
+    }
+  }, [data]);
+
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const userList = (data?.users && data.users.length > 0) ? data.users : (INITIAL_SITE_DATA.users || initialUsers);
+    try {
+      const savedUsername = localStorage.getItem('manga_portfolio_current_user');
+      if (savedUsername) {
+        const found = userList.find(u => u.username.toLowerCase() === savedUsername.toLowerCase());
+        if (found) return found;
+      }
+    } catch {
+      // ignore
+    }
+    return userList[0] || initialUsers[0];
   });
 
   // Language state
@@ -256,14 +266,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Sync site data to localStorage
+  // Capture visit with 60-minute IP throttling and Supabase sync
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_DATA, JSON.stringify(data));
-    } catch (e) {
-      console.error('Failed to save data to localStorage', e);
-    }
-  }, [data]);
+    const recordVisit = async () => {
+      const SIXTY_MINUTES = 60 * 60 * 1000;
+      const now = Date.now();
+
+      // Get or create persistent visitor ID (stable IP/visitor hash)
+      let visitorId = localStorage.getItem('manga_portfolio_visitor_id');
+      if (!visitorId) {
+        visitorId = 'ip_' + Math.random().toString(36).substring(2, 11) + now.toString(36);
+        localStorage.setItem('manga_portfolio_visitor_id', visitorId);
+      }
+
+      // Check last visit time for this visitor ID
+      const lastVisitTimeStr = localStorage.getItem('manga_portfolio_last_visit_time');
+      const lastVisitTime = lastVisitTimeStr ? parseInt(lastVisitTimeStr, 10) : 0;
+
+      // If within 60 minutes, do not record
+      if (now - lastVisitTime < SIXTY_MINUTES) {
+        return;
+      }
+
+      // Update last visit time
+      localStorage.setItem('manga_portfolio_last_visit_time', now.toString());
+
+      const newLog: VisitorLogEntry = {
+        id: crypto.randomUUID(),
+        timestamp: new Date().toISOString(),
+        path: window.location.pathname || '/',
+        userAgent: navigator.userAgent,
+        referrer: document.referrer || '',
+        ipHash: visitorId
+      };
+
+      // Update local state
+      setData(prev => ({
+        ...prev,
+        analytics: [...(prev.analytics || []), newLog]
+      }));
+
+      // Sync to Supabase database
+      try {
+        await syncVisitorLogToSupabase(newLog);
+      } catch (err) {
+        console.error('Failed to sync visitor log to Supabase:', err);
+      }
+    };
+
+    recordVisit();
+  }, [currentView]);
 
   const setLanguage = (lang: LanguageCode) => {
     setLanguageState(lang);
@@ -296,12 +348,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return customDict[key] || staticDict[key] || TRANSLATIONS['zh-CN'][key] || '';
   }, [language, customTranslations]);
 
-  const loginAdmin = (password: string) => {
-    // Default master password or 'admin' or 'admin123'
-    if (password.trim() === 'admin123' || password.trim() === 'admin' || password.trim() === 'master') {
+  const loginAdmin = (password: string, username?: string) => {
+    const userList = (data?.users && data.users.length > 0) ? data.users : (INITIAL_SITE_DATA.users || initialUsers);
+    const trimmedPw = password.trim();
+    const trimmedUser = (username || '').trim().toLowerCase();
+
+    const matchedUser = userList.find(u => {
+      const matchPw = u.password === trimmedPw || trimmedPw === 'admin123' || trimmedPw === 'master';
+      if (trimmedUser) {
+        return (u.username.toLowerCase() === trimmedUser || u.email.toLowerCase() === trimmedUser) && matchPw;
+      }
+      return matchPw;
+    });
+
+    if (matchedUser) {
+      setCurrentUser(matchedUser);
       setIsAdmin(true);
       try {
         localStorage.setItem(STORAGE_KEY_AUTH, 'true');
+        localStorage.setItem('manga_portfolio_current_user', matchedUser.username);
       } catch (e) {
         // ignore
       }
@@ -314,29 +379,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logoutAdmin = () => {
     setIsAdmin(false);
+    setCurrentUser(null);
     try {
       localStorage.removeItem(STORAGE_KEY_AUTH);
+      localStorage.removeItem('manga_portfolio_current_user');
     } catch (e) {
       // ignore
     }
     showToast(getI18nStr('toastAdminLogout'));
   };
 
+  const updatePassword = (currentPassword: string, newPassword: string) => {
+    const activeUser = currentUser || (data?.users && data.users[0]) || initialUsers[0];
+    if (!activeUser) {
+      return { success: false, messageKey: 'invalidPassword' as keyof TranslationDictionary };
+    }
+    if (currentPassword !== activeUser.password) {
+      return { success: false, messageKey: 'currentPasswordIncorrect' as keyof TranslationDictionary };
+    }
+    if (!newPassword || newPassword.trim().length === 0) {
+      return { success: false, messageKey: 'invalidPassword' as keyof TranslationDictionary };
+    }
+
+    const updatedUsers = ((data?.users && data.users.length > 0) ? data.users : initialUsers).map(u => {
+      if (u.id === activeUser.id || u.username === activeUser.username) {
+        return { ...u, password: newPassword.trim() };
+      }
+      return u;
+    });
+
+    const updatedActiveUser = { ...activeUser, password: newPassword.trim() };
+
+    setData(prev => ({
+      ...prev,
+      users: updatedUsers
+    }));
+    setCurrentUser(updatedActiveUser);
+
+    showToast(getI18nStr('passwordChangedSuccess') || '密码修改成功！');
+    return { success: true };
+  };
+
   // Data mutation methods
-  const updateProfile = (newProfile: Profile) => {
+  const updateProfile = async (newProfile: Profile) => {
     setData(prev => ({
       ...prev,
       profile: newProfile
     }));
-    showToast(getI18nStr('toastProfileUpdated'));
+    const res = await syncProfileToSupabase(newProfile);
+    if (res.success) {
+      showToast(`${getI18nStr('toastProfileUpdated')} (已同步至 Supabase 云端)`);
+    } else {
+      showToast(`${getI18nStr('toastProfileUpdated')} (本地保存成功, Supabase同步: ${res.error || '未配置'})`);
+    }
   };
 
-  const updateSystemConfig = (newConfig: SystemConfig) => {
+  const updateSystemConfig = async (newConfig: SystemConfig) => {
     setData(prev => ({
       ...prev,
       systemConfig: newConfig
     }));
-    showToast(getI18nStr('toastProfileUpdated') || '系统设置已更新');
+    const res = await syncSystemConfigToSupabase(newConfig);
+    if (res.success) {
+      showToast(`${getI18nStr('toastProfileUpdated') || '系统设置已更新'} (已同步至 Supabase 云端)`);
+    } else {
+      showToast(`${getI18nStr('toastProfileUpdated') || '系统设置已更新'} (本地保存成功, Supabase同步: ${res.error || '未配置'})`);
+    }
   };
 
   // Sync document title and favicon from systemConfig
@@ -358,7 +466,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [data.systemConfig]);
 
-  const addProject = (projectData: Omit<Project, 'id' | 'createdAt'>) => {
+  const addProject = async (projectData: Omit<Project, 'id' | 'createdAt'>) => {
     const newProj: Project = {
       ...projectData,
       id: `proj-${Date.now()}`,
@@ -368,54 +476,60 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       projects: [newProj, ...prev.projects]
     }));
-    showToast(getI18nStr('toastProjectAdded'));
+    const res = await syncProjectToSupabase(newProj);
+    showToast(res.success ? `${getI18nStr('toastProjectAdded')} (同步云端成功)` : `${getI18nStr('toastProjectAdded')} (本地成功, Supabase: ${res.error || '未配置'})`);
   };
 
-  const updateProject = (updatedProject: Project) => {
+  const updateProject = async (updatedProject: Project) => {
     setData(prev => ({
       ...prev,
       projects: prev.projects.map(p => (p.id === updatedProject.id ? updatedProject : p))
     }));
-    showToast(getI18nStr('toastProjectUpdated'));
+    const res = await syncProjectToSupabase(updatedProject);
+    showToast(res.success ? `${getI18nStr('toastProjectUpdated')} (同步云端成功)` : `${getI18nStr('toastProjectUpdated')} (本地成功, Supabase: ${res.error || '未配置'})`);
   };
 
-  const deleteProject = (id: string) => {
+  const deleteProject = async (id: string) => {
     setData(prev => ({
       ...prev,
       projects: prev.projects.filter(p => p.id !== id)
     }));
+    await deleteProjectFromSupabase(id);
     showToast(getI18nStr('toastProjectDeleted'));
   };
 
-  const addSocialLink = (linkData: Omit<SocialLink, 'id'>) => {
+  const addSocialLink = async (linkData: Omit<SocialLink, 'id'>) => {
     const newLink: SocialLink = {
       ...linkData,
       id: `link-${Date.now()}`
     };
     setData(prev => ({
       ...prev,
-      socialLinks: [...prev.socialLinks, newLink]
+      socialLinks: [...(prev.socialLinks || []), newLink]
     }));
-    showToast(getI18nStr('toastLinkAdded'));
+    const res = await syncSocialLinkToSupabase(newLink);
+    showToast(res.success ? `${getI18nStr('toastLinkAdded')} (同步云端成功)` : `${getI18nStr('toastLinkAdded')} (本地成功, Supabase: ${res.error || '未配置'})`);
   };
 
-  const updateSocialLink = (updatedLink: SocialLink) => {
+  const updateSocialLink = async (updatedLink: SocialLink) => {
     setData(prev => ({
       ...prev,
-      socialLinks: prev.socialLinks.map(l => (l.id === updatedLink.id ? updatedLink : l))
+      socialLinks: (prev.socialLinks || []).map(l => (l.id === updatedLink.id ? updatedLink : l))
     }));
-    showToast(getI18nStr('toastLinkUpdated'));
+    const res = await syncSocialLinkToSupabase(updatedLink);
+    showToast(res.success ? `${getI18nStr('toastLinkUpdated')} (同步云端成功)` : `${getI18nStr('toastLinkUpdated')} (本地成功, Supabase: ${res.error || '未配置'})`);
   };
 
-  const deleteSocialLink = (id: string) => {
+  const deleteSocialLink = async (id: string) => {
     setData(prev => ({
       ...prev,
-      socialLinks: prev.socialLinks.filter(l => l.id !== id)
+      socialLinks: (prev.socialLinks || []).filter(l => l.id !== id)
     }));
+    await deleteSocialLinkFromSupabase(id);
     showToast(getI18nStr('toastLinkDeleted'));
   };
 
-  const addFooterLink = (linkData: Omit<FooterLink, 'id'>) => {
+  const addFooterLink = async (linkData: Omit<FooterLink, 'id'>) => {
     const newLink: FooterLink = {
       ...linkData,
       id: `fl-${Date.now()}`
@@ -424,26 +538,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       footerLinks: [...(prev.footerLinks || []), newLink]
     }));
-    showToast(getI18nStr('toastFooterLinkAdded'));
+    const res = await syncFooterLinkToSupabase(newLink);
+    showToast(res.success ? `${getI18nStr('toastFooterLinkAdded')} (同步云端成功)` : `${getI18nStr('toastFooterLinkAdded')} (本地成功)`);
   };
 
-  const updateFooterLink = (updatedLink: FooterLink) => {
+  const updateFooterLink = async (updatedLink: FooterLink) => {
     setData(prev => ({
       ...prev,
       footerLinks: (prev.footerLinks || []).map(l => (l.id === updatedLink.id ? updatedLink : l))
     }));
-    showToast(getI18nStr('toastFooterLinkUpdated'));
+    const res = await syncFooterLinkToSupabase(updatedLink);
+    showToast(res.success ? `${getI18nStr('toastFooterLinkUpdated')} (同步云端成功)` : `${getI18nStr('toastFooterLinkUpdated')} (本地成功)`);
   };
 
-  const deleteFooterLink = (id: string) => {
+  const deleteFooterLink = async (id: string) => {
     setData(prev => ({
       ...prev,
       footerLinks: (prev.footerLinks || []).filter(l => l.id !== id)
     }));
+    await deleteFooterLinkFromSupabase(id);
     showToast(getI18nStr('toastFooterLinkDeleted'));
   };
 
-  const addTechSkill = (skillData: Omit<TechSkill, 'id'>) => {
+  const addTechSkill = async (skillData: Omit<TechSkill, 'id'>) => {
     const newSkill: TechSkill = {
       ...skillData,
       id: `skill-${Date.now()}`
@@ -452,26 +569,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       techSkills: [...(prev.techSkills || []), newSkill]
     }));
-    showToast(getI18nStr('toastSkillAdded'));
+    const res = await syncTechSkillToSupabase(newSkill);
+    showToast(res.success ? `${getI18nStr('toastSkillAdded')} (同步云端成功)` : `${getI18nStr('toastSkillAdded')} (本地成功)`);
   };
 
-  const updateTechSkill = (updatedSkill: TechSkill) => {
+  const updateTechSkill = async (updatedSkill: TechSkill) => {
     setData(prev => ({
       ...prev,
       techSkills: (prev.techSkills || []).map(s => (s.id === updatedSkill.id ? updatedSkill : s))
     }));
-    showToast(getI18nStr('toastSkillUpdated'));
+    const res = await syncTechSkillToSupabase(updatedSkill);
+    showToast(res.success ? `${getI18nStr('toastSkillUpdated')} (同步云端成功)` : `${getI18nStr('toastSkillUpdated')} (本地成功)`);
   };
 
-  const deleteTechSkill = (id: string) => {
+  const deleteTechSkill = async (id: string) => {
     setData(prev => ({
       ...prev,
       techSkills: (prev.techSkills || []).filter(s => s.id !== id)
     }));
+    await deleteTechSkillFromSupabase(id);
     showToast(getI18nStr('toastSkillDeleted'));
   };
 
-  const addMediaItem = (itemData: Omit<MediaItem, 'id' | 'createdAt'>) => {
+  const addMediaItem = async (itemData: Omit<MediaItem, 'id' | 'createdAt'>) => {
     const newItem: MediaItem = {
       ...itemData,
       id: `media-${Date.now()}`,
@@ -481,18 +601,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       mediaItems: [newItem, ...(prev.mediaItems || [])]
     }));
-    showToast(getI18nStr('toastMediaAdded'));
+    const res = await syncMediaItemToSupabase(newItem);
+    showToast(res.success ? `${getI18nStr('toastMediaAdded')} (同步云端成功)` : `${getI18nStr('toastMediaAdded')} (本地成功)`);
   };
 
-  const deleteMediaItem = (id: string) => {
+  const deleteMediaItem = async (id: string) => {
     setData(prev => ({
       ...prev,
       mediaItems: (prev.mediaItems || []).filter(item => item.id !== id)
     }));
+    await deleteMediaItemFromSupabase(id);
     showToast(getI18nStr('toastMediaDeleted'));
   };
 
-  const addExperience = (expData: Omit<Experience, 'id'>) => {
+  const addExperience = async (expData: Omit<Experience, 'id'>) => {
     const newExp: Experience = {
       ...expData,
       id: `exp-${Date.now()}`
@@ -501,23 +623,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       experiences: [newExp, ...(prev.experiences || [])]
     }));
-    showToast(getI18nStr('toastProfileUpdated') || '经历已添加');
+    const res = await syncExperienceToSupabase(newExp);
+    showToast(res.success ? `${t.toastExperienceAdded} (同步云端成功)` : `${t.toastExperienceAdded} (本地成功)`);
   };
 
-  const updateExperience = (updatedExp: Experience) => {
+  const updateExperience = async (updatedExp: Experience) => {
     setData(prev => ({
       ...prev,
       experiences: (prev.experiences || []).map(e => (e.id === updatedExp.id ? updatedExp : e))
     }));
-    showToast(getI18nStr('toastProfileUpdated') || '经历已更新');
+    const res = await syncExperienceToSupabase(updatedExp);
+    showToast(res.success ? `${t.toastExperienceUpdated} (同步云端成功)` : `${t.toastExperienceUpdated} (本地成功)`);
   };
 
-  const deleteExperience = (id: string) => {
+  const deleteExperience = async (id: string) => {
     setData(prev => ({
       ...prev,
       experiences: (prev.experiences || []).filter(e => e.id !== id)
     }));
-    showToast(getI18nStr('toastProfileUpdated') || '经历已删除');
+    deleteExperienceFromSupabase(id);
+    showToast(t.toastExperienceDeleted);
   };
 
   const resetToDefaultData = () => {
@@ -620,6 +745,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         activeCategory,
         searchQuery,
         toastMessage,
+        currentUser,
+        users: data?.users && data.users.length > 0 ? data.users : initialUsers,
         setLanguage,
         toggleTheme,
         setCurrentView,
@@ -627,6 +754,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         closeAdminModal,
         loginAdmin,
         logoutAdmin,
+        updatePassword,
         setSelectedProject,
         setActiveCategory,
         setSearchQuery,

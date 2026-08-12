@@ -4,13 +4,14 @@ import { X, Key, ShieldCheck, Sparkles, Terminal } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const AdminLoginModal: React.FC = () => {
-  const { isAdminModalOpen, closeAdminModal, loginAdmin, t, openAdminModal, isAdmin } = useApp();
+  const { isAdminModalOpen, closeAdminModal, loginAdmin, t, isAdmin } = useApp();
+  const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const success = loginAdmin(password);
+    const success = loginAdmin(password, username);
     if (!success) {
       setErrorMsg(true);
     } else {
@@ -20,6 +21,7 @@ export const AdminLoginModal: React.FC = () => {
   };
 
   const handleFillDemo = () => {
+    setUsername('admin');
     setPassword('admin123');
     setErrorMsg(false);
   };
@@ -75,6 +77,22 @@ export const AdminLoginModal: React.FC = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-xs font-black text-black uppercase mb-1.5">
+                    {t.usernameLabel}
+                  </label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={e => {
+                      setUsername(e.target.value);
+                      setErrorMsg(false);
+                    }}
+                    placeholder={t.usernamePlaceholder}
+                    className="w-full bg-zinc-50 border-3 border-black p-3 rounded-xl text-sm font-black text-black shadow-[3px_3px_0px_0px_#000] focus:outline-none focus:bg-white focus:border-rose-500 transition-colors"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-xs font-black text-black uppercase mb-1.5">
                     {t.passwordLabel}

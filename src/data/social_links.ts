@@ -3,7 +3,7 @@ import { SocialLink } from '../types';
 export const initialSocialLinks: SocialLink[] = [
   {
     id: 'link-1',
-    name: 'GitHub 开源主页',
+    name: 'GitHub',
     url: 'https://github.com',
     type: 'github',
     iconName: 'Github',
@@ -12,7 +12,7 @@ export const initialSocialLinks: SocialLink[] = [
   },
   {
     id: 'link-2',
-    name: '技术博客 (Medium / Dev.to)',
+    name: 'Weekly Blog',
     url: 'https://dev.to',
     type: 'blog',
     iconName: 'BookOpen',
@@ -21,7 +21,7 @@ export const initialSocialLinks: SocialLink[] = [
   },
   {
     id: 'link-3',
-    name: 'Twitter / X 动态',
+    name: 'Twitter',
     url: 'https://x.com',
     type: 'twitter',
     iconName: 'Twitter',
@@ -29,7 +29,7 @@ export const initialSocialLinks: SocialLink[] = [
   },
   {
     id: 'link-4',
-    name: 'Bilibili 哔哩哔哩',
+    name: 'Bilibili',
     url: 'https://bilibili.com',
     type: 'bilibili',
     iconName: 'Tv',
@@ -37,10 +37,18 @@ export const initialSocialLinks: SocialLink[] = [
   },
   {
     id: 'link-5',
-    name: '电子邮箱 (Email)',
-    url: 'mailto:kaito.lin.dev@example.com',
-    type: 'email',
-    iconName: 'Mail',
-    badgeText: 'Open for Hire'
+    name: 'LinkedIn',
+    url: 'https://linkedin.com',
+    type: 'other',
+    iconName: 'Linkedin',
+    badgeText: 'Professional'
+  },
+  {
+    id: 'link-6',
+    name: 'ResearchGate',
+    url: 'https://researchgate.net',
+    type: 'other',
+    iconName: 'FileText',
+    badgeText: 'Academic'
   }
 ];

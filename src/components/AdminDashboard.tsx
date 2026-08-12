@@ -54,13 +54,20 @@ import {
   Activity,
   X,
   Loader2,
-  Languages
+  Languages,
+  ChevronDown,
+  Key,
+  Database,
+  RefreshCw
 } from 'lucide-react';
+import { getSupabaseCredentials, saveCustomSupabaseConfig, testSupabaseConnection, isSupabaseConfigured } from '../lib/supabase';
+import { fetchAllSiteDataFromSupabase } from '../services/supabaseService';
 import { VisitorHeatmap } from './VisitorHeatmap';
 import { VisitorGeoMap } from './VisitorGeoMap';
 import { LanguageManager } from './LanguageManager';
 import { MediaLibrarySelector } from './MediaLibrarySelector';
 import { exportPortfolioToPDF } from '../utils/exportPdf';
+import { ExperienceModal } from './ExperienceModal';
 
 const ANIME_COLOR_SWATCHES = [
   { name: '赛博青蓝', hex: '#38BDF8' },
@@ -93,6 +100,9 @@ export const AdminDashboard: React.FC = () => {
     isAdmin,
     setCurrentView,
     logoutAdmin,
+    currentUser,
+    updatePassword,
+    users,
     updateProfile,
     updateSystemConfig,
     addProject,
@@ -123,7 +133,13 @@ export const AdminDashboard: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<AdminTab>('profile');
   const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [currentPwInput, setCurrentPwInput] = useState('');
+  const [newPwInput, setNewPwInput] = useState('');
+  const [confirmPwInput, setConfirmPwInput] = useState('');
+  const [pwError, setPwError] = useState<string | null>(null);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const currentLangObj = LANGUAGES.find(l => l.code === language) || LANGUAGES[0];
 
@@ -145,6 +161,27 @@ export const AdminDashboard: React.FC = () => {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  // Supabase Configuration Form States
+  const [supabaseUrlInput, setSupabaseUrlInput] = useState(() => getSupabaseCredentials().url);
+  const [supabaseKeyInput, setSupabaseKeyInput] = useState(() => getSupabaseCredentials().key);
+  const [testingSupabase, setTestingSupabase] = useState(false);
+  const [supabaseStatusMsg, setSupabaseStatusMsg] = useState<string | null>(null);
+
+  const handleTestAndSaveSupabase = async () => {
+    setTestingSupabase(true);
+    setSupabaseStatusMsg(null);
+    saveCustomSupabaseConfig(supabaseUrlInput, supabaseKeyInput);
+    const result = await testSupabaseConnection();
+    setTestingSupabase(false);
+    if (result.connected) {
+      setSupabaseStatusMsg('🟢 ' + result.message);
+      showToast('Supabase 数据库连接成功！数据同步引擎已接通。');
+    } else {
+      setSupabaseStatusMsg('🔴 ' + result.message);
+      showToast('Supabase 连接测试未通过，请检查凭据');
+    }
+  };
+
   const [systemForm, setSystemForm] = useState<SystemConfig>(() => {
     return data.systemConfig || {
       siteTitle: 'MECHA SYSTEM',
@@ -153,19 +190,13 @@ export const AdminDashboard: React.FC = () => {
       copyrightText: '© 2026',
       copyrightSubtext: '',
       version: 'v2.5.0-RELEASE',
-      buildChannel: 'PRODUCTION-STABLE-CHANNEL',
-      footerLinks: []
+      buildChannel: 'PRODUCTION-STABLE-CHANNEL'
     };
   });
-  const [footerLinksJson, setFooterLinksJson] = useState<string>(() => {
-    return JSON.stringify(data.systemConfig?.footerLinks || [], null, 2);
-  });
-  const [jsonError, setJsonError] = useState<string | null>(null);
 
   useEffect(() => {
     if (data.systemConfig) {
       setSystemForm(data.systemConfig);
-      setFooterLinksJson(JSON.stringify(data.systemConfig.footerLinks || [], null, 2));
     }
   }, [data.systemConfig]);
 
@@ -361,25 +392,14 @@ export const AdminDashboard: React.FC = () => {
     e.preventDefault();
     if (!footerLinkForm.name.trim() || !footerLinkForm.url.trim()) return;
 
-    let updatedLinks: FooterLink[] = [];
     if (editingFooterLink) {
-      updatedLinks = (systemForm.footerLinks || []).map(fl =>
-        fl.id === editingFooterLink.id ? { ...fl, ...footerLinkForm } : fl
-      );
-    } else {
-      const newLink: FooterLink = {
-        id: `fl-${Math.random().toString(36).substr(2, 9)}`,
+      updateFooterLink({
+        ...editingFooterLink,
         ...footerLinkForm
-      };
-      updatedLinks = [...(systemForm.footerLinks || []), newLink];
+      });
+    } else {
+      addFooterLink(footerLinkForm);
     }
-
-    const updatedConfig = {
-      ...systemForm,
-      footerLinks: updatedLinks
-    };
-    setSystemForm(updatedConfig);
-    updateSystemConfig(updatedConfig);
 
     setIsAddingFooterLink(false);
     setEditingFooterLink(null);
@@ -725,14 +745,73 @@ export const AdminDashboard: React.FC = () => {
             <Home className="w-4 h-4 stroke-[2.5]" />
           </motion.button>
 
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowLogoutConfirm(true)}
-            className="flex items-center gap-2 bg-rose-400 text-black border-2 border-black px-3.5 py-2 rounded-xl text-xs font-black shadow-[2.5px_2.5px_0px_0px_#000] hover:bg-rose-500 transition-colors"
-          >
-            <LogOut className="w-4 h-4 stroke-[2.5]" />
-            <span>{t.logoutButton}</span>
-          </motion.button>
+          {/* User Avatar & Menu */}
+          <div className="relative">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="flex items-center gap-2 bg-white dark:bg-slate-900 border-2 border-black dark:border-zinc-200 p-1.5 pr-3 rounded-xl shadow-[2.5px_2.5px_0px_0px_#000] dark:shadow-[2.5px_2.5px_0px_0px_#38BDF8] hover:bg-amber-100 dark:hover:bg-slate-800 transition-colors"
+              title={dbt.userAvatarMenu || '管理员菜单'}
+            >
+              <img
+                src={(currentUser || (data?.users && data.users[0]) || users[0])?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250'}
+                alt={(currentUser || (data?.users && data.users[0]) || users[0])?.name || 'Admin'}
+                className="w-7 h-7 rounded-lg object-cover border border-black dark:border-zinc-300 shrink-0"
+              />
+              <div className="text-left hidden sm:block">
+                <p className="text-xs font-black text-black dark:text-white leading-tight">
+                  {(currentUser || (data?.users && data.users[0]) || users[0])?.name || '管理员'}
+                </p>
+                <p className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400 leading-tight">
+                  @{(currentUser || (data?.users && data.users[0]) || users[0])?.username || 'admin'}
+                </p>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-black dark:text-white stroke-[2.5]" />
+            </motion.button>
+
+            <AnimatePresence>
+              {userMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 border-2 border-black dark:border-zinc-200 rounded-xl shadow-[4px_4px_0px_0px_#000] dark:shadow-[4px_4px_0px_0px_#38BDF8] p-1.5 z-50 flex flex-col gap-1"
+                >
+                  <div className="px-2.5 py-2 bg-amber-50 dark:bg-slate-800 rounded-lg border border-black/10 dark:border-white/10 mb-0.5">
+                    <p className="text-xs font-black text-black dark:text-white">
+                      {(currentUser || (data?.users && data.users[0]) || users[0])?.name || '管理员'}
+                    </p>
+                    <p className="text-[10px] font-mono text-zinc-500 dark:text-zinc-400">
+                      {(currentUser || (data?.users && data.users[0]) || users[0])?.role || 'Administrator'}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      setShowChangePasswordModal(true);
+                    }}
+                    className="w-full text-left px-2.5 py-2 text-xs font-black rounded-lg flex items-center gap-2 text-black dark:text-white hover:bg-amber-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <Key className="w-4 h-4 text-amber-500 stroke-[2.5]" />
+                    <span>{dbt.changePassword || '修改密码'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      setShowLogoutConfirm(true);
+                    }}
+                    className="w-full text-left px-2.5 py-2 text-xs font-black rounded-lg flex items-center gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/50 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4 text-rose-500 stroke-[2.5]" />
+                    <span>{dbt.logoutButton || '退出登录'}</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
@@ -1070,6 +1149,30 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
 
+
+              <div>
+                <label className="block text-xs font-black text-black uppercase mb-1">
+                  Blog URL
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.blogUrl}
+                  onChange={e => setProfileForm({ ...profileForm, blogUrl: e.target.value })}
+                  className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-black uppercase mb-1">
+                  GitHub URL
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.githubUrl}
+                  onChange={e => setProfileForm({ ...profileForm, githubUrl: e.target.value })}
+                  className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
+                />
+              </div>
 
               <button
                 type="submit"
@@ -1614,14 +1717,11 @@ export const AdminDashboard: React.FC = () => {
                                       type="button"
                                       onClick={() => setSkillForm({ ...skillForm, color: swatch.hex })}
                                       style={{ backgroundColor: swatch.hex }}
-                                      className={`h-8 px-2.5 rounded-xl border-2 border-black font-black text-[10px] text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:scale-105 flex items-center gap-1 cursor-pointer ${
+                                      className={`w-8 h-8 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-all hover:scale-105 flex items-center justify-center cursor-pointer ${
                                         isSelected ? 'ring-2 ring-black scale-105' : 'opacity-90'
                                       }`}
                                     >
-                                      {isSelected && <Check className="w-3.5 h-3.5 text-black stroke-[3]" />}
-                                      <span className="bg-white/85 px-1 py-0.2 rounded text-[9px] font-mono border border-black/30">
-                                        {swatch.name}
-                                      </span>
+                                      {isSelected && <Check className="w-5 h-5 text-black stroke-[3]" />}
                                     </button>
                                   );
                                 })}
@@ -1784,7 +1884,7 @@ export const AdminDashboard: React.FC = () => {
               
               <div className="flex items-center justify-between bg-zinc-50 border-2 border-black p-3 rounded-2xl shadow-[3px_3px_0px_0px_#000]">
                 <h4 className="font-black text-sm text-black">
-                  Experiences ({(data.experiences || []).length})
+                  {t.experienceSection} ({(data.experiences || []).length})
                 </h4>
                 <button
                   onClick={() => {
@@ -1802,115 +1902,21 @@ export const AdminDashboard: React.FC = () => {
                   className="bg-black text-white px-3 py-1.5 border-2 border-black rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#f43f5e] hover:translate-y-[-2px] hover:shadow-[3px_3px_0px_0px_#f43f5e] transition-all flex items-center gap-1.5"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Add
+                  {t.addExperienceBtn}
                 </button>
               </div>
 
-              {isAddingExp && (
-                <form onSubmit={handleExpSubmit} className="bg-white border-2 border-black p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex flex-col gap-5">
-                  <div className="flex items-center justify-between border-b-2 border-black pb-3">
-                    <h4 className="font-black text-base text-black flex items-center gap-2">
-                      <Briefcase className="w-4 h-4 text-rose-500" />
-                      {editingExp ? 'Edit Experience' : 'Add Experience'}
-                    </h4>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-black text-black uppercase mb-1 flex justify-between">
-                        <span>Company</span>
-                        <span className="text-[10px] text-zinc-500 font-mono font-bold">({language})</span>
-                      </label>
-                      <input
-                        required
-                        type="text"
-                        value={expForm.company[language] || ''}
-                        onChange={e => setExpForm({ ...expForm, company: { ...expForm.company, [language]: e.target.value } })}
-                        className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-black text-black uppercase mb-1 flex justify-between">
-                        <span>Role</span>
-                        <span className="text-[10px] text-zinc-500 font-mono font-bold">({language})</span>
-                      </label>
-                      <input
-                        required
-                        type="text"
-                        value={expForm.role[language] || ''}
-                        onChange={e => setExpForm({ ...expForm, role: { ...expForm.role, [language]: e.target.value } })}
-                        className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-black text-black uppercase mb-1">Start Date</label>
-                      <input
-                        required
-                        type="text"
-                        placeholder="e.g. 2022-01"
-                        value={expForm.startDate}
-                        onChange={e => setExpForm({ ...expForm, startDate: e.target.value })}
-                        className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-black text-black uppercase mb-1">End Date</label>
-                      <input
-                        required
-                        type="text"
-                        placeholder="e.g. Present"
-                        value={expForm.endDate}
-                        onChange={e => setExpForm({ ...expForm, endDate: e.target.value })}
-                        className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black text-black uppercase mb-1 flex justify-between">
-                      <span>Description</span>
-                      <span className="text-[10px] text-zinc-500 font-mono font-bold">({language})</span>
-                    </label>
-                    <textarea
-                      required
-                      rows={3}
-                      value={expForm.description[language] || ''}
-                      onChange={e => setExpForm({ ...expForm, description: { ...expForm.description, [language]: e.target.value } })}
-                      className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black text-black uppercase mb-1">Technologies (Comma separated)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. React, Node.js, Docker"
-                      value={expForm.technologies}
-                      onChange={e => setExpForm({ ...expForm, technologies: e.target.value })}
-                      className="w-full bg-zinc-50 border-2 border-black p-2.5 rounded-xl text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000]"
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAddingExp(false);
-                        setEditingExp(null);
-                      }}
-                      className="bg-white border-2 border-black text-black px-4 py-2.5 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] hover:bg-zinc-100"
-                    >
-                      {t.cancel}
-                    </button>
-                    <button
-                      type="submit"
-                      className="bg-rose-500 border-2 border-black text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] hover:bg-rose-400"
-                    >
-                      {t.save}
-                    </button>
-                  </div>
-                </form>
-              )}
+              <ExperienceModal
+                isOpen={isAddingExp}
+                onClose={() => {
+                  setIsAddingExp(false);
+                  setEditingExp(null);
+                }}
+                onSave={handleExpSubmit}
+                experience={editingExp}
+                form={expForm}
+                setForm={setExpForm}
+              />
 
               <div className="grid grid-cols-1 gap-4">
                 {(data.experiences || []).map(exp => {
@@ -2320,7 +2326,7 @@ export const AdminDashboard: React.FC = () => {
           {/* 5. System Settings Tab */}
           {activeTab === 'system' && (
             <div className="flex flex-col gap-6">
-              
+
               {/* Site Branding & Title Settings Block */}
               <div className="bg-amber-100 border-3 border-black p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex flex-col gap-4">
                 <div className="flex items-center justify-between gap-3 pb-1">
@@ -2572,7 +2578,7 @@ export const AdminDashboard: React.FC = () => {
 
                 {/* 列表显示 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  {(systemForm.footerLinks || []).map(fl => (
+                  {(data.footerLinks || []).map(fl => (
                     <div
                       key={fl.id}
                       className="bg-white border-2 border-black p-3 rounded-xl shadow-[2px_2px_0px_0px_#000] flex items-center justify-between gap-3 hover:shadow-[3px_3px_0px_0px_#000] transition-shadow"
@@ -2603,12 +2609,7 @@ export const AdminDashboard: React.FC = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => {
-                            const updatedLinks = (systemForm.footerLinks || []).filter(l => l.id !== fl.id);
-                            const updatedConfig = { ...systemForm, footerLinks: updatedLinks };
-                            setSystemForm(updatedConfig);
-                            updateSystemConfig(updatedConfig);
-                          }}
+                          onClick={() => deleteFooterLink(fl.id)}
                           className="bg-rose-200 text-rose-900 border-1.5 border-black p-1.5 rounded-lg text-xs font-black hover:bg-rose-300 shadow-[1px_1px_0px_0px_#000] transition-transform active:scale-95"
                           title={t.delete}
                         >
@@ -2617,38 +2618,97 @@ export const AdminDashboard: React.FC = () => {
                       </div>
                     </div>
                   ))}
-                  {(systemForm.footerLinks || []).length === 0 && (
+                  {(data.footerLinks || []).length === 0 && (
                     <div className="col-span-full py-6 text-center text-zinc-500 text-xs font-bold bg-white/50 border-2 border-dashed border-zinc-300 rounded-xl">
                       暂无页脚独立外链 / No links available
                     </div>
                   )}
                 </div>
               </div>
-              
-              <div className="bg-amber-100 border-3 border-black p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex flex-col gap-2">
-                <h4 className="font-black text-base text-black flex items-center gap-2">
-                  <Download className="w-5 h-5 text-black stroke-[2.5]" />
-                  <span>{dbt.systemBackupTitle}</span>
-                </h4>
-                <button
-                  onClick={handleExportJSON}
-                  className="self-start mt-2 bg-black text-yellow-300 border-2 border-black px-4 py-2 rounded-xl text-xs font-black shadow-[2.5px_2.5px_0px_0px_#FFE4E6] hover:bg-zinc-800"
-                >
-                  {dbt.systemExportBtn}
-                </button>
-              </div>
 
-              <div className="bg-rose-100 border-3 border-black p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex flex-col gap-2">
-                <h4 className="font-black text-base text-rose-950 flex items-center gap-2">
-                  <RotateCcw className="w-5 h-5 text-rose-900 stroke-[2.5]" />
-                  <span>{t.resetDefault}</span>
-                </h4>
-                <button
-                  onClick={resetToDefaultData}
-                  className="self-start mt-2 bg-rose-600 text-white border-2 border-black px-4 py-2 rounded-xl text-xs font-black shadow-[2.5px_2.5px_0px_0px_#000] hover:bg-rose-700"
-                >
-                  {t.resetDefault}
-                </button>
+              {/* Supabase 云端数据库配置 */}
+              <div className="bg-amber-100 dark:bg-slate-800 border-3 border-black p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-5 h-5 text-amber-600 dark:text-amber-400 stroke-[2.5]" />
+                    <h4 className="font-black text-base text-black dark:text-white uppercase tracking-wider">
+                      Supabase 云端数据库配置
+                    </h4>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-black border-2 border-black shadow-[1px_1px_0px_0px_#000] ${
+                      isSupabaseConfigured()
+                        ? 'bg-emerald-400 text-black'
+                        : 'bg-rose-400 text-white'
+                    }`}>
+                      {isSupabaseConfigured() ? '🟢 已配置 Supabase 实例' : '🔴 未配置 / 纯本地模式'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-black text-black dark:text-zinc-200 uppercase mb-1">
+                      Supabase Project URL
+                    </label>
+                    <input
+                      type="text"
+                      value={supabaseUrlInput}
+                      onChange={e => setSupabaseUrlInput(e.target.value)}
+                      placeholder="https://your-project.supabase.co"
+                      className="w-full bg-white dark:bg-slate-900 border-2 border-black p-2.5 rounded-xl text-xs font-mono font-bold text-black dark:text-white shadow-[2px_2px_0px_0px_#000]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-black text-black dark:text-zinc-200 uppercase mb-1">
+                      Supabase Key
+                    </label>
+                    <input
+                      type="password"
+                      value={supabaseKeyInput}
+                      onChange={e => setSupabaseKeyInput(e.target.value)}
+                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+                      className="w-full bg-white dark:bg-slate-900 border-2 border-black p-2.5 rounded-xl text-xs font-mono font-bold text-black dark:text-white shadow-[2px_2px_0px_0px_#000]"
+                    />
+                  </div>
+                </div>
+
+                {supabaseStatusMsg && (
+                  <div className="p-3 bg-white dark:bg-slate-900 border-2 border-black rounded-xl text-xs font-bold text-black dark:text-white font-mono shadow-[2px_2px_0px_0px_#000]">
+                    {supabaseStatusMsg}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleTestAndSaveSupabase}
+                    disabled={testingSupabase}
+                    className="bg-black text-yellow-300 dark:bg-amber-400 dark:text-black border-2 border-black px-5 py-2.5 rounded-xl text-xs font-black shadow-[3px_3px_0px_0px_#000] hover:bg-zinc-800 flex items-center gap-2 active:scale-95 transition-transform disabled:opacity-50"
+                  >
+                    {testingSupabase ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4 stroke-[2.5]" />}
+                    <span>保存并测试 Supabase 连接</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      showToast('正在从 Supabase 云端拉取最新数据...');
+                      const cloudData = await fetchAllSiteDataFromSupabase();
+                      if (cloudData) {
+                        showToast('成功拉取 Supabase 云端全站数据！刷新即可同步显示。');
+                        setTimeout(() => window.location.reload(), 1000);
+                      } else {
+                        showToast('从 Supabase 拉取数据失败，请确认数据库配置与网络连接。');
+                      }
+                    }}
+                    className="bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black px-4 py-2.5 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] hover:bg-zinc-100 flex items-center gap-2 active:scale-95 transition-transform"
+                  >
+                    <Download className="w-4 h-4 stroke-[2.5]" />
+                    <span>从 Supabase 重新拉取云端全站数据</span>
+                  </button>
+                </div>
               </div>
 
             </div>
@@ -2699,6 +2759,157 @@ export const AdminDashboard: React.FC = () => {
                   {dbt.logoutConfirmBtn}
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Change Password Modal */}
+      <AnimatePresence>
+        {showChangePasswordModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setShowChangePasswordModal(false);
+                setPwError(null);
+                setCurrentPwInput('');
+                setNewPwInput('');
+                setConfirmPwInput('');
+              }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 border-4 border-black dark:border-zinc-200 rounded-3xl shadow-[12px_12px_0px_0px_#000] dark:shadow-[12px_12px_0px_0px_#38BDF8] overflow-hidden my-auto z-10"
+            >
+              <div className="bg-amber-300 dark:bg-amber-400 border-b-4 border-black p-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-black text-amber-300 rounded-lg flex items-center justify-center font-black">
+                    <Key className="w-4 h-4 stroke-[2.5]" />
+                  </div>
+                  <h3 className="font-black text-base text-black">
+                    {dbt.changePasswordTitle || dbt.changePassword || '修改管理员密码'}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowChangePasswordModal(false);
+                    setPwError(null);
+                    setCurrentPwInput('');
+                    setNewPwInput('');
+                    setConfirmPwInput('');
+                  }}
+                  className="w-8 h-8 bg-white border-2 border-black rounded-xl flex items-center justify-center font-black shadow-[2px_2px_0px_0px_#000] hover:bg-yellow-200 transition-colors"
+                >
+                  <X className="w-4 h-4 text-black stroke-[3]" />
+                </button>
+              </div>
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (newPwInput !== confirmPwInput) {
+                    setPwError(dbt.passwordsDoNotMatch || '两次输入的新密码不一致');
+                    return;
+                  }
+                  const res = updatePassword(currentPwInput, newPwInput);
+                  if (!res.success) {
+                    setPwError(res.messageKey ? (dbt[res.messageKey] || '密码错误') : '修改失败');
+                  } else {
+                    setPwError(null);
+                    setCurrentPwInput('');
+                    setNewPwInput('');
+                    setConfirmPwInput('');
+                    setShowChangePasswordModal(false);
+                  }
+                }}
+                className="p-6 flex flex-col gap-4"
+              >
+                <div>
+                  <label className="block text-xs font-black text-black dark:text-zinc-200 uppercase mb-1.5">
+                    {dbt.currentPassword || '当前密码'}
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={currentPwInput}
+                    onChange={e => {
+                      setCurrentPwInput(e.target.value);
+                      setPwError(null);
+                    }}
+                    placeholder={dbt.currentPasswordPlaceholder || '请输入当前密码'}
+                    className="w-full bg-zinc-50 dark:bg-slate-950 border-3 border-black dark:border-zinc-200 p-3 rounded-xl text-sm font-black text-black dark:text-white shadow-[3px_3px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-black dark:text-zinc-200 uppercase mb-1.5">
+                    {dbt.newPassword || '新密码'}
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={newPwInput}
+                    onChange={e => {
+                      setNewPwInput(e.target.value);
+                      setPwError(null);
+                    }}
+                    placeholder={dbt.newPasswordPlaceholder || '请输入新密码'}
+                    className="w-full bg-zinc-50 dark:bg-slate-950 border-3 border-black dark:border-zinc-200 p-3 rounded-xl text-sm font-black text-black dark:text-white shadow-[3px_3px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-black dark:text-zinc-200 uppercase mb-1.5">
+                    {dbt.confirmPassword || '确认新密码'}
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={confirmPwInput}
+                    onChange={e => {
+                      setConfirmPwInput(e.target.value);
+                      setPwError(null);
+                    }}
+                    placeholder={dbt.confirmPasswordPlaceholder || '请再次输入新密码'}
+                    className="w-full bg-zinc-50 dark:bg-slate-950 border-3 border-black dark:border-zinc-200 p-3 rounded-xl text-sm font-black text-black dark:text-white shadow-[3px_3px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] focus:outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                {pwError && (
+                  <div className="bg-rose-200 dark:bg-rose-950/80 border-2 border-black dark:border-rose-400 p-2.5 rounded-xl text-xs font-black text-rose-900 dark:text-rose-200 shadow-[2px_2px_0px_0px_#000]">
+                    ⚠️ {pwError}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowChangePasswordModal(false);
+                      setPwError(null);
+                      setCurrentPwInput('');
+                      setNewPwInput('');
+                      setConfirmPwInput('');
+                    }}
+                    className="px-4 py-2.5 bg-zinc-100 dark:bg-slate-800 text-black dark:text-white border-2 border-black dark:border-zinc-300 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] hover:bg-zinc-200 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    {dbt.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-amber-300 text-black border-2 border-black rounded-xl text-xs font-black shadow-[3px_3px_0px_0px_#000] hover:bg-amber-400 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Save className="w-4 h-4 stroke-[2.5]" />
+                    <span>{dbt.save}</span>
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

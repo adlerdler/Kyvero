@@ -37,6 +37,7 @@ export interface TechSkill {
 }
 
 export interface Profile {
+  id?: string;
   name: string;
   alias: string;
   title: Record<LanguageCode, string> | string;
@@ -71,7 +72,6 @@ export interface SystemConfig {
   copyrightSubtext: string;
   version: string;
   buildChannel: string;
-  footerLinks: FooterLink[];
 }
 
 export interface MediaItem {
@@ -92,15 +92,36 @@ export interface Experience {
   technologies?: string[];
 }
 
+export interface VisitorLogEntry {
+  id: string;
+  timestamp: string;
+  path: string;
+  userAgent: string;
+  referrer?: string;
+  ipHash: string;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  password: string;
+  name: string;
+  avatar: string;
+  role: string;
+  email: string;
+}
+
 export interface SiteData {
   profile: Profile;
   socialLinks: SocialLink[];
-  footerLinks?: FooterLink[];
+  footerLinks: FooterLink[];
   projects: Project[];
   techSkills?: TechSkill[];
   mediaItems?: MediaItem[];
   experiences?: Experience[];
+  analytics?: VisitorLogEntry[];
   systemConfig?: SystemConfig;
+  users?: User[];
 }
 
 export type AdminTab = 'profile' | 'projects' | 'skills' | 'experience' | 'links' | 'media' | 'analytics' | 'system' | 'i18n';

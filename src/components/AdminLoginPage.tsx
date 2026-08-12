@@ -6,7 +6,8 @@ import { LANGUAGES, LanguageCode } from '../i18n/languages';
 import { FlagIcon } from './FlagIcon';
 
 export const AdminLoginPage: React.FC = () => {
-  const { loginAdmin, t, setCurrentView, theme, toggleTheme, language, setLanguage } = useApp();
+  const { loginAdmin, t, setCurrentView, theme, toggleTheme, language, setLanguage, users } = useApp();
+  const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState(false);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
@@ -14,7 +15,7 @@ export const AdminLoginPage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const success = loginAdmin(password);
+    const success = loginAdmin(password, username);
     if (!success) {
       setErrorMsg(true);
     } else {
@@ -131,6 +132,22 @@ export const AdminLoginPage: React.FC = () => {
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div>
               <label className="block text-xs font-black text-black dark:text-zinc-200 uppercase mb-2">
+                {t.usernameLabel}
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={e => {
+                  setUsername(e.target.value);
+                  setErrorMsg(false);
+                }}
+                placeholder={t.usernamePlaceholder}
+                className="w-full bg-zinc-50 dark:bg-slate-950 border-3 border-black dark:border-zinc-200 p-4 rounded-2xl text-sm font-black text-black dark:text-white shadow-[3px_3px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] focus:outline-none focus:bg-white dark:focus:bg-slate-900 focus:border-rose-500 transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-black text-black dark:text-zinc-200 uppercase mb-2">
                 {t.passwordLabel}
               </label>
               <input
@@ -152,7 +169,7 @@ export const AdminLoginPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 className="bg-rose-200 dark:bg-rose-950/80 border-2 border-black dark:border-rose-400 p-3 rounded-xl text-xs font-black text-rose-900 dark:text-rose-200 shadow-[2px_2px_0px_0px_#000]"
               >
-                ⚠️ {t.invalidPassword}
+                ⚠️ {t.invalidUsernameOrPassword || t.invalidPassword}
               </motion.div>
             )}
 

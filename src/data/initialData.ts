@@ -1,28 +1,37 @@
 import { SiteData } from '../types';
 import { initialProfile } from './profiles';
 import { initialSocialLinks } from './social_links';
+import { initialFooterLinks } from './footer_links';
 import { initialProjects } from './projects';
 import { initialTechSkills } from './tech_skills';
 import { initialMediaItems } from './media_items';
 import { initialExperiences } from './experiences';
-import { initialSystemConfig, initialFooterLinks } from './system';
+import { initialSystemConfig } from './system';
+import { initialAnalytics } from './analytics';
+import { initialUsers } from './users';
 
 export * from './svg_assets';
 export * from './profiles';
 export * from './social_links';
+export * from './footer_links';
 export * from './projects';
 export * from './tech_skills';
 export * from './media_items';
 export * from './experiences';
 export * from './system';
+export * from './analytics';
+export * from './users';
 
 export const INITIAL_SITE_DATA: SiteData = {
   profile: initialProfile,
   socialLinks: initialSocialLinks,
+  footerLinks: initialFooterLinks,
   projects: initialProjects,
   techSkills: initialTechSkills,
   mediaItems: initialMediaItems,
   experiences: initialExperiences,
-  systemConfig: initialSystemConfig
+  analytics: initialAnalytics,
+  systemConfig: initialSystemConfig,
+  users: initialUsers
 };
 

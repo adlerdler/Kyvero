@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Terminal, Zap, Code2 } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 interface AnimeLoaderProps {
   isLoading: boolean;
@@ -8,6 +9,7 @@ interface AnimeLoaderProps {
 }
 
 export const AnimeLoader: React.FC<AnimeLoaderProps> = ({ isLoading }) => {
+  const { t } = useApp();
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -74,12 +76,12 @@ export const AnimeLoader: React.FC<AnimeLoaderProps> = ({ isLoading }) => {
 
             {/* Title & Status */}
             <h3 className="font-black text-lg text-black dark:text-white tracking-tight flex items-center justify-center gap-2">
-              <span>SYSTEM INITIALIZING</span>
+              <span>{t.loaderSystemInitializing}</span>
               <Code2 className="w-4 h-4 text-amber-500 stroke-[3]" />
             </h3>
 
             <p className="text-xs font-extrabold text-zinc-600 dark:text-zinc-300 mt-1 mb-4">
-              A1L 机甲系统加载中...
+              {t.loaderLoadingStatus}
             </p>
 
             {/* Progress Bar Container */}
