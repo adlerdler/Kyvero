@@ -356,7 +356,7 @@ export const zhCN: TranslationDictionary = {
 
   cloudinaryUnsignedNotConfigured: 'Cloudinary 无签名模式未配置。请在 .env 中设置 VITE_CLOUDINARY_CLOUD_NAME 和 VITE_CLOUDINARY_UPLOAD_PRESET。',
   cloudinaryUploadFailed: 'Cloudinary 上传失败: ',
-  cloudinarySignedNotConfigured: 'Cloudinary 签名模式未配置。请在 .env 中设置 VITE_CLOUDINARY_CLOUD_NAME、VITE_CLOUDINARY_API_KEY 和 VITE_CLOUDINARY_API_SECRET。',
+  cloudinarySignedNotConfigured: 'Cloudinary 签名模式未配置。请在 .env 中设置 VITE_CLOUDINARY_CLOUD_NAME、VITE_CLOUDINARY_API_KEY 和 CLOUDINARY_API_SECRET。',
   cloudinarySignedUploadFailed: 'Cloudinary 签名上传失败: ',
   cloudinaryExtractIdFailed: '解析 Cloudinary public_id 失败:',
   cloudinaryNotCloudinaryImage: '非 Cloudinary 图片，无法在云端删除：',

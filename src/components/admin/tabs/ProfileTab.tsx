@@ -61,18 +61,37 @@ export const ProfileTab: React.FC = () => {
       }
     };
 
+    const parseFieldToObj = (field: any): Record<string, any> => {
+      if (typeof field === 'string') {
+        const trimmed = field.trim();
+        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+          try {
+            return JSON.parse(trimmed);
+          } catch {
+            return { 'zh-CN': field };
+          }
+        }
+        return { 'zh-CN': field };
+      }
+      if (typeof field === 'object' && field !== null) {
+        return field;
+      }
+      return {};
+    };
+
     const currentTitle = typeof profileForm.title === 'string' ? profileForm.title : (profileForm.title as Record<LanguageCode, string>)[language] || '';
     const currentSubtitle = typeof profileForm.subtitle === 'string' ? profileForm.subtitle : (profileForm.subtitle as Record<LanguageCode, string>)[language] || '';
     const currentSpeech = typeof profileForm.speechBubbleText === 'string' ? profileForm.speechBubbleText : (profileForm.speechBubbleText as Record<LanguageCode, string>)[language] || '';
     const currentLocation = typeof profileForm.location === 'string' ? profileForm.location : (profileForm.location as Record<LanguageCode, string>)[language] || '';
-    const currentStatus = typeof profileForm.statusText === 'string' ? profileForm.statusText : (profileForm.statusText as Record<LanguageCode, string>)[language] || '';
+    const statusObj = parseFieldToObj(profileForm.statusText);
+    const currentStatus = statusObj[language] || statusObj['zh-CN'] || '';
     const currentBioLines = Array.isArray(profileForm.bioLines) ? profileForm.bioLines : (profileForm.bioLines as Record<LanguageCode, string[]>)[language] || [];
 
     const finalTitle = await processFieldTranslations(currentTitle, profileForm.title);
     const finalSubtitle = await processFieldTranslations(currentSubtitle, profileForm.subtitle);
     const finalSpeech = await processFieldTranslations(currentSpeech, profileForm.speechBubbleText);
     const finalLocation = await processFieldTranslations(currentLocation, profileForm.location);
-    const finalStatus = await processFieldTranslations(currentStatus, profileForm.statusText);
+    const finalStatus = await processFieldTranslations(currentStatus, statusObj);
     const finalBio = await processBioTranslations(currentBioLines, profileForm.bioLines);
 
     updateProfile({
@@ -237,14 +256,51 @@ export const ProfileTab: React.FC = () => {
       </div>
 
       <div>
-        <label className="block text-xs font-black text-black dark:text-zinc-200 uppercase mb-1">
-          {t.statusLabel}
+        <label className="block text-xs font-black text-black dark:text-zinc-200 uppercase mb-1 flex items-center justify-between">
+          <span>{t.statusLabel}</span>
+          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono font-bold">({language})</span>
         </label>
         <input
           type="text"
-          value={profileForm.statusText}
-          onChange={e => setProfileForm({ ...profileForm, statusText: e.target.value })}
-          className="w-full bg-zinc-50 dark:bg-slate-900 border-2 border-black dark:border-zinc-500 p-2.5 rounded-xl text-xs font-bold text-black dark:text-zinc-200 shadow-[2px_2px_0px_0px_#000]"
+          value={(() => {
+            if (typeof profileForm.statusText === 'string') {
+              const trimmed = profileForm.statusText.trim();
+              if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+                try {
+                  const parsed = JSON.parse(trimmed);
+                  return parsed[language] || parsed['zh-CN'] || '';
+                } catch {
+                  return profileForm.statusText;
+                }
+              }
+              return profileForm.statusText;
+            }
+            if (typeof profileForm.statusText === 'object' && profileForm.statusText !== null) {
+              const obj = profileForm.statusText as Record<LanguageCode, string>;
+              return obj[language] || obj['zh-CN'] || '';
+            }
+            return '';
+          })()}
+          onChange={e => {
+            let currentObj: Record<LanguageCode, string> = { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' };
+            if (typeof profileForm.statusText === 'object' && profileForm.statusText !== null) {
+              currentObj = { ...currentObj, ...(profileForm.statusText as Record<LanguageCode, string>) };
+            }
+            if (typeof profileForm.statusText === 'string') {
+              const trimmed = profileForm.statusText.trim();
+              if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+                try {
+                  currentObj = { ...currentObj, ...JSON.parse(trimmed) };
+                } catch {
+                  currentObj['zh-CN'] = profileForm.statusText;
+                }
+              } else {
+                currentObj['zh-CN'] = profileForm.statusText;
+              }
+            }
+            setProfileForm({ ...profileForm, statusText: { ...currentObj, [language]: e.target.value } });
+          }}
+          className="w-full bg-zinc-50 dark:bg-slate-900 border-2 border-black dark:border-zinc-500 p-2.5 rounded-xl text-xs font-bold text-black dark:text-zinc-200 shadow-[2px_2px_0px_0px_#000] focus:bg-white dark:focus:bg-slate-800"
         />
       </div>
 

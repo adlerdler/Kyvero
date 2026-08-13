@@ -14,15 +14,17 @@ const getSupabase = (env: any) => {
   const clean = (val: string | undefined) => (val || '').trim().replace(/['";]/g, '');
   
   // Platform agnostic env access: c.env (Edge) or process.env (Node)
-  const supabaseUrl = clean(env?.VITE_SUPABASE_URL || env?.SUPABASE_URL || process?.env?.VITE_SUPABASE_URL || process?.env?.SUPABASE_URL);
+  const supabaseUrl = clean(env?.SUPABASE_URL || env?.VITE_SUPABASE_URL || process?.env?.SUPABASE_URL || process?.env?.VITE_SUPABASE_URL);
   
   const supabaseKey = clean(
-    env?.VITE_SUPABASE_KEY || 
+    env?.SUPABASE_KEY ||
     env?.SUPABASE_SERVICE_ROLE_KEY || 
+    env?.VITE_SUPABASE_KEY || 
     env?.VITE_SUPABASE_SERVICE_ROLE_KEY ||
     env?.VITE_SUPABASE_ANON_KEY ||
-    process?.env?.VITE_SUPABASE_KEY ||
-    process?.env?.SUPABASE_SERVICE_ROLE_KEY
+    process?.env?.SUPABASE_KEY ||
+    process?.env?.SUPABASE_SERVICE_ROLE_KEY ||
+    process?.env?.VITE_SUPABASE_KEY
   );
 
   if (!supabaseUrl || !supabaseKey) {
@@ -517,6 +519,63 @@ app.post('/translate', async (c) => {
     );
 
     return c.json({ success: true, translations: result });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+app.post('/cloudinary/sign', async (c) => {
+  try {
+    const { params } = await c.req.json();
+    const secret = (c.env as any)?.CLOUDINARY_API_SECRET || (c.env as any)?.VITE_CLOUDINARY_API_SECRET || process?.env?.CLOUDINARY_API_SECRET || process?.env?.VITE_CLOUDINARY_API_SECRET;
+    if (!secret) {
+      return c.json({ success: false, error: 'Cloudinary API secret not configured on server' }, 400);
+    }
+    const paramObj = params || {};
+    const sortedKeys = Object.keys(paramObj).sort();
+    const signatureString = sortedKeys.map(key => `${key}=${paramObj[key]}`).join('&') + secret;
+    
+    const encoder = new TextEncoder();
+    const data = encoder.encode(signatureString);
+    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    return c.json({ success: true, signature });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+app.post('/cloudinary/destroy', async (c) => {
+  try {
+    const { public_id } = await c.req.json();
+    const cloudName = (c.env as any)?.CLOUDINARY_CLOUD_NAME || (c.env as any)?.VITE_CLOUDINARY_CLOUD_NAME || process?.env?.CLOUDINARY_CLOUD_NAME || process?.env?.VITE_CLOUDINARY_CLOUD_NAME;
+    const apiKey = (c.env as any)?.CLOUDINARY_API_KEY || (c.env as any)?.VITE_CLOUDINARY_API_KEY || process?.env?.CLOUDINARY_API_KEY || process?.env?.VITE_CLOUDINARY_API_KEY;
+    const secret = (c.env as any)?.CLOUDINARY_API_SECRET || (c.env as any)?.VITE_CLOUDINARY_API_SECRET || process?.env?.CLOUDINARY_API_SECRET || process?.env?.VITE_CLOUDINARY_API_SECRET;
+    
+    if (!cloudName || !apiKey || !secret || !public_id) {
+      return c.json({ success: false, error: 'Cloudinary configuration or public_id missing' }, 400);
+    }
+    
+    const timestamp = Math.round(Date.now() / 1000);
+    const signatureString = `public_id=${public_id}&timestamp=${timestamp}${secret}`;
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest('SHA-1', encoder.encode(signatureString));
+    const signature = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    const formData = new FormData();
+    formData.append('public_id', public_id);
+    formData.append('api_key', apiKey);
+    formData.append('timestamp', timestamp.toString());
+    formData.append('signature', signature);
+    
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+    return c.json({ success: data.result === 'ok', data });
   } catch (error: any) {
     return c.json({ success: false, error: error.message }, 500);
   }

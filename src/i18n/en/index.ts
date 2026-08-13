@@ -356,7 +356,7 @@ export const en: TranslationDictionary = {
 
   cloudinaryUnsignedNotConfigured: 'Cloudinary unsigned mode not configured. Please set VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET in .env.',
   cloudinaryUploadFailed: 'Cloudinary upload failed: ',
-  cloudinarySignedNotConfigured: 'Cloudinary signed mode not configured. Please set VITE_CLOUDINARY_CLOUD_NAME, VITE_CLOUDINARY_API_KEY, and VITE_CLOUDINARY_API_SECRET in .env.',
+  cloudinarySignedNotConfigured: 'Cloudinary signed mode not configured. Please set VITE_CLOUDINARY_CLOUD_NAME, VITE_CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in .env.',
   cloudinarySignedUploadFailed: 'Cloudinary signed upload failed: ',
   cloudinaryExtractIdFailed: 'Failed to extract Cloudinary public_id:',
   cloudinaryNotCloudinaryImage: 'Not a Cloudinary image, cannot delete remotely: ',

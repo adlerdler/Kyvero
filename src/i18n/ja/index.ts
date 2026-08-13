@@ -356,7 +356,7 @@ export const ja: TranslationDictionary = {
 
   cloudinaryUnsignedNotConfigured: 'Cloudinaryの署名なしモードが設定されていません。.envでVITE_CLOUDINARY_CLOUD_NAMEとVITE_CLOUDINARY_UPLOAD_PRESETを設定してください。',
   cloudinaryUploadFailed: 'Cloudinaryアップロード失敗: ',
-  cloudinarySignedNotConfigured: 'Cloudinary署名モードが設定されていません。.envでVITE_CLOUDINARY_CLOUD_NAME、VITE_CLOUDINARY_API_KEY、VITE_CLOUDINARY_API_SECRETを設定してください。',
+  cloudinarySignedNotConfigured: 'Cloudinary署名モードが設定されていません。.envでVITE_CLOUDINARY_CLOUD_NAME、VITE_CLOUDINARY_API_KEY、CLOUDINARY_API_SECRETを設定してください。',
   cloudinarySignedUploadFailed: 'Cloudinary署名アップロード失敗: ',
   cloudinaryExtractIdFailed: 'Cloudinary public_idの抽出失敗:',
   cloudinaryNotCloudinaryImage: 'Cloudinary画像ではないため、リモート削除できません: ',

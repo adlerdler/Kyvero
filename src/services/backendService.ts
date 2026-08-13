@@ -23,20 +23,34 @@ export async function fetchAllSiteDataFromBackend(): Promise<Partial<SiteData> |
     
     if (data.profiles && data.profiles.length > 0) {
       const raw = data.profiles[0];
+      const parseJsonIfString = (val: any) => {
+        if (typeof val === 'string') {
+          const trimmed = val.trim();
+          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+            try {
+              return JSON.parse(trimmed);
+            } catch {
+              return val;
+            }
+          }
+        }
+        return val;
+      };
+
       siteData.profile = {
         id: raw.id,
         name: raw.name || '',
         alias: raw.alias || 'KAITO LIN',
-        title: raw.title || {},
-        subtitle: raw.subtitle || {},
+        title: parseJsonIfString(raw.title) || {},
+        subtitle: parseJsonIfString(raw.subtitle) || {},
         avatarUrl: raw.avatar_url || raw.avatar || '',
         logoUrl: raw.logo_url,
         iconUrl: raw.icon_url,
         siteTitle: raw.site_title,
-        speechBubbleText: raw.speech_bubble_text || {},
-        bioLines: raw.bio_lines || raw.bio || {},
-        location: raw.location || {},
-        statusText: raw.status_text || raw.status || '',
+        speechBubbleText: parseJsonIfString(raw.speech_bubble_text) || {},
+        bioLines: parseJsonIfString(raw.bio_lines || raw.bio) || {},
+        location: parseJsonIfString(raw.location) || {},
+        statusText: parseJsonIfString(raw.status_text || raw.status) || '',
         skills: raw.skills || [],
         blogUrl: raw.blog_url || 'https://dev.to',
         githubUrl: raw.github_url || 'https://github.com',

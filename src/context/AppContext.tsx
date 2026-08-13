@@ -714,9 +714,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const getLocalizedText = React.useCallback((field: Record<LanguageCode, string> | string | undefined, lang: LanguageCode): string => {
     if (!field) return '';
-    if (typeof field === 'string') return field;
+    if (typeof field === 'string') {
+      const trimmed = field.trim();
+      if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (typeof parsed === 'object' && parsed !== null) {
+            if (Array.isArray(parsed)) {
+              return parsed.join(', ');
+            }
+            return parsed[lang] || parsed['zh-CN'] || parsed['zh-TW'] || parsed['en'] || parsed['ja'] || parsed['ko'] || Object.values(parsed)[0] || '';
+          }
+        } catch {
+          // ignore
+        }
+      }
+      return field;
+    }
     if (typeof field === 'object' && field !== null) {
-      return field[lang] || field['zh-CN'] || field['en'] || Object.values(field)[0] || '';
+      return field[lang] || field['zh-CN'] || field['zh-TW'] || field['en'] || field['ja'] || field['ko'] || Object.values(field)[0] || '';
     }
     return '';
   }, []);

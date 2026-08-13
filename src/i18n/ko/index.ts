@@ -356,7 +356,7 @@ export const ko: TranslationDictionary = {
 
   cloudinaryUnsignedNotConfigured: 'Cloudinary 서명 없는 모드가 설정되지 않았습니다. .env에 VITE_CLOUDINARY_CLOUD_NAME 및 VITE_CLOUDINARY_UPLOAD_PRESET을 설정하세요.',
   cloudinaryUploadFailed: 'Cloudinary 업로드 실패: ',
-  cloudinarySignedNotConfigured: 'Cloudinary 서명 모드가 설정되지 않았습니다. .env에 VITE_CLOUDINARY_CLOUD_NAME, VITE_CLOUDINARY_API_KEY, VITE_CLOUDINARY_API_SECRET을 설정하세요.',
+  cloudinarySignedNotConfigured: 'Cloudinary 서명 모드가 설정되지 않았습니다. .env에 VITE_CLOUDINARY_CLOUD_NAME, VITE_CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET을 설정하세요.',
   cloudinarySignedUploadFailed: 'Cloudinary 서명 업로드 실패: ',
   cloudinaryExtractIdFailed: 'Cloudinary public_id 추출 실패:',
   cloudinaryNotCloudinaryImage: 'Cloudinary 이미지가 아니므로 원격 삭제할 수 없습니다: ',

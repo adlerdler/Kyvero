@@ -4,10 +4,10 @@ import { t } from './i18nHelper';
 const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
 const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
 const apiKey = import.meta.env.VITE_CLOUDINARY_API_KEY || '';
-const apiSecret = import.meta.env.VITE_CLOUDINARY_API_SECRET || ''; 
+const apiSecret = (import.meta as any).env?.CLOUDINARY_API_SECRET || (import.meta as any).env?.VITE_CLOUDINARY_API_SECRET || ''; 
 
-export const isCloudinaryConfigured = Boolean(cloudName && uploadPreset && !cloudName.includes('your-cloud-name'));
-export const isSignedConfigured = Boolean(cloudName && apiKey && apiSecret);
+export const isCloudinaryConfigured = Boolean(cloudName && (uploadPreset || apiKey) && !cloudName.includes('your-cloud-name'));
+export const isSignedConfigured = Boolean(cloudName && apiKey);
 
 /**
  * SHA-1 哈希值计算工具（使用 Web Crypto API）
@@ -30,10 +30,35 @@ export async function signParameters(params: Record<string, string | number>, se
 }
 
 /**
+ * 获取签名（优先使用后端安全接口，避免前端泄露 Secret，如无后端则回退到本地计算）
+ */
+async function getSignature(params: Record<string, string | number>): Promise<string> {
+  if (apiSecret) {
+    return await signParameters(params, apiSecret);
+  }
+
+  try {
+    const res = await fetch('/api/cloudinary/sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ params })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.signature) return data.signature;
+    }
+  } catch {
+    // fallback
+  }
+
+  throw new Error(t('cloudinarySignedNotConfigured'));
+}
+
+/**
  * Unsigned 无签名模式上传
  */
 export async function uploadToCloudinaryUnsigned(file: File): Promise<string> {
-  if (!isCloudinaryConfigured) {
+  if (!cloudName || !uploadPreset || cloudName.includes('your-cloud-name')) {
     throw new Error(t('cloudinaryUnsignedNotConfigured'));
   }
 
@@ -62,7 +87,7 @@ export async function uploadToCloudinaryUnsigned(file: File): Promise<string> {
  * Signed 签名安全模式上传
  */
 export async function uploadToCloudinarySigned(file: File): Promise<string> {
-  if (!cloudName || !apiKey || !apiSecret) {
+  if (!cloudName || !apiKey) {
     throw new Error(t('cloudinarySignedNotConfigured'));
   }
 
@@ -75,7 +100,7 @@ export async function uploadToCloudinarySigned(file: File): Promise<string> {
     params['upload_preset'] = uploadPreset;
   }
 
-  const signature = await signParameters(params, apiSecret);
+  const signature = await getSignature(params);
 
   const formData = new FormData();
   formData.append('file', file);
@@ -126,7 +151,7 @@ export function extractPublicId(url: string): string | null {
 }
 
 /**
- * 从 Cloudinary 删除一个资源（需要配置了签名模式）
+ * 从 Cloudinary 删除一个资源（通过后端安全接口或本地签名模式）
  * @param url 图片的完整 URL
  */
 export async function deleteFromCloudinary(url: string): Promise<boolean> {
@@ -134,6 +159,20 @@ export async function deleteFromCloudinary(url: string): Promise<boolean> {
   if (!publicId) {
     console.warn(t('cloudinaryNotCloudinaryImage'), url);
     return false;
+  }
+
+  try {
+    const res = await fetch('/api/cloudinary/destroy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ public_id: publicId })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success) return true;
+    }
+  } catch {
+    // fallback to client-side if server endpoint not reachable
   }
 
   if (!isSignedConfigured || !cloudName || !apiKey || !apiSecret) {

@@ -15,7 +15,7 @@
 [![DeepL](https://img.shields.io/badge/DeepL_API-0F2B46?style=for-the-badge&logo=deepl&logoColor=white)](https://www.deepl.com/)
 [![LLM Context](https://img.shields.io/badge/LLM--Ready-llm.txt_v2.1-8A2BE2?style=for-the-badge&logo=openai&logoColor=white)](https://kyvero.app/llm.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-
+[![Netlify Status](https://api.netlify.com/api/v1/badges/e51574ba-8863-4f1f-bc72-febeffd10498/deploy-status)](https://app.netlify.com/projects/kyvero/deploys)
 [中文文档](./README_CN.md)
 
 </div>
@@ -89,11 +89,11 @@ npm install
 Create a `.env` file in the root directory (refer to `.env.example`):
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_KEY=your_supabase_anon_key
+SUPABASE_KEY=your_supabase_anon_or_service_key
 VITE_CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 VITE_CLOUDINARY_UPLOAD_PRESET=your_cloudinary_preset
 VITE_CLOUDINARY_API_KEY=your_cloudinary_api_key
-VITE_CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 DEEPL_API_KEY=your_deepl_api_key
 ```
 
@@ -115,8 +115,9 @@ Kyvero's backend is built with the **Hono** framework, supporting various Server
 ### 1. Core Configuration
 Ensure the following variables are configured in your deployment platform:
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_KEY` (Supabase **service_role** key is recommended for backend operations)
+- `SUPABASE_KEY` (Supabase **service_role** key is recommended for backend operations)
 - `DEEPL_API_KEY` (Server-side secret)
+- `CLOUDINARY_API_SECRET` (Server-side secret)
 
 ### 2. Platform Adapters
 - **Cloudflare Workers**: Entry point at `src/api/adapters/cloudflare.ts`.

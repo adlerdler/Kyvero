@@ -356,7 +356,7 @@ export const zhTW: TranslationDictionary = {
 
   cloudinaryUnsignedNotConfigured: 'Cloudinary 無簽名模式未配置。請在 .env 中設置 VITE_CLOUDINARY_CLOUD_NAME 和 VITE_CLOUDINARY_UPLOAD_PRESET。',
   cloudinaryUploadFailed: 'Cloudinary 上傳失敗: ',
-  cloudinarySignedNotConfigured: 'Cloudinary 簽名模式未配置。請在 .env 中設置 VITE_CLOUDINARY_CLOUD_NAME、VITE_CLOUDINARY_API_KEY 和 VITE_CLOUDINARY_API_SECRET。',
+  cloudinarySignedNotConfigured: 'Cloudinary 簽名模式未配置。請在 .env 中設置 VITE_CLOUDINARY_CLOUD_NAME、VITE_CLOUDINARY_API_KEY 和 CLOUDINARY_API_SECRET。',
   cloudinarySignedUploadFailed: 'Cloudinary 簽名上傳失敗: ',
   cloudinaryExtractIdFailed: '解析 Cloudinary public_id 失敗:',
   cloudinaryNotCloudinaryImage: '非 Cloudinary 圖片，無法在雲端刪除：',
