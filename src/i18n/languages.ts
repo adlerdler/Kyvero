@@ -32,10 +32,24 @@ export interface TranslationDictionary {
   techStack: string;
   allProjects: string;
   featuredProjects: string;
+  featuredLabel: string;
+  portfolioHub: string;
+  skillMatrixLabel: string;
+  specsLabel: string;
+  featuredProject: string;
+  createdLabel: string;
+  projectDescriptionTitle: string;
+  cyberCommChannels: string;
+  channelsLabel: string;
+  matrixStatusActive: string;
   
   // Actions & Links
   viewDemo: string;
   viewGithub: string;
+  viewProjectDetails: string;
+  noProjectsFound: string;
+  recommendedLabel: string;
+  visitLabel: string;
   readArticle: string;
   contactMe: string;
   copyLink: string;
@@ -66,6 +80,8 @@ export interface TranslationDictionary {
   currentPasswordIncorrect: string;
   passwordsDoNotMatch: string;
   userAvatarMenu: string;
+  superAdmin: string;
+  adminRole: string;
   
   // Admin Tabs
   tabProfile: string;
@@ -110,6 +126,7 @@ export interface TranslationDictionary {
   technologiesLabel: string;
 
   // Skills Management
+  tabExperience: string;
   tabSkills: string;
   addSkillBtn: string;
   editSkillBtn: string;
@@ -219,6 +236,7 @@ export interface TranslationDictionary {
   // Additional Admin/Login Strings
   selectProjectCoverTitle: string;
   selectProjectCoverSubtitle: string;
+  copyrightReserved: string;
   uploadFailed: string;
   exportSuccessToast: string;
   switchToLightMode: string;
@@ -307,6 +325,7 @@ export interface TranslationDictionary {
   toastAdminLoginSuccess: string;
   toastAdminLogout: string;
   toastProfileUpdated: string;
+  toastSystemConfigUpdated: string;
   toastProjectAdded: string;
   toastProjectUpdated: string;
   toastProjectDeleted: string;
@@ -328,6 +347,9 @@ export interface TranslationDictionary {
   toastTranslationsReset: string;
   toastThemeDark: string;
   toastThemeLight: string;
+  toastSyncSuccess: string;
+  toastLocalSuccess: string;
+  notConfigured: string;
   loaderSystemInitializing: string;
   loaderLoadingStatus: string;
 
@@ -349,6 +371,35 @@ export interface TranslationDictionary {
   skillsFilterBackendTag: string;
   skillsFilterAITag: string;
   skillsFilterArchTag: string;
+
+  // Cloudinary & Supabase lib/service keys
+  cloudinaryUnsignedNotConfigured: string;
+  cloudinaryUploadFailed: string;
+  cloudinarySignedNotConfigured: string;
+  cloudinarySignedUploadFailed: string;
+  cloudinaryExtractIdFailed: string;
+  cloudinaryNotCloudinaryImage: string;
+  cloudinarySignNotConfiguredDelete: string;
+  cloudinaryDestroyFailed: string;
+  cloudinaryNetworkError: string;
+  supabaseNotConfiguredMsg: string;
+  supabaseConnectionException: string;
+  supabaseServiceRoleConnected: string;
+  supabaseNormalConnected: string;
+  supabaseNetworkFailed: string;
+  supabaseNotConfigured: string;
+  supabaseLoginException: string;
+  supabaseNotConnected: string;
+  supabaseProfileSyncError: string;
+  supabaseSystemConfigSyncError: string;
+  supabaseProjectSyncError: string;
+  supabaseTechSkillSyncError: string;
+  supabaseExperienceSyncError: string;
+  supabaseSocialLinkSyncError: string;
+  supabaseFooterLinkSyncError: string;
+  supabaseMediaItemSyncError: string;
+  supabaseAnalyticsSyncError: string;
+  supabaseUserSyncError: string;
 }
 
 export const DEFAULT_LANGUAGE: LanguageCode = 'zh-CN';

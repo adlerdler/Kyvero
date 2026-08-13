@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import { motion } from 'motion/react';
 import { Briefcase, Calendar, ChevronRight } from 'lucide-react';
 
@@ -15,7 +15,7 @@ export const ExperienceTimeline: React.FC = () => {
         <div>
           <h2 className="text-3xl md:text-5xl font-black text-black dark:text-white uppercase tracking-tight flex items-center gap-3">
             <Briefcase className="w-8 h-8 md:w-10 md:h-10 text-rose-500" />
-            Experience
+            {t.experienceSection}
           </h2>
           <div className="h-1.5 w-24 bg-rose-500 mt-4 rounded-full"></div>
         </div>

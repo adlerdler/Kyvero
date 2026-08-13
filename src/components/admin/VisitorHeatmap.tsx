@@ -10,8 +10,9 @@ import {
   BarChart2,
   Info
 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { initialAnalytics } from '../data/analytics';
+import { useApp } from '../../context/AppContext';
+
+const initialAnalytics: any[] = [];
 
 export interface AnnualDayData {
   dateStr: string; // YYYY-MM-DD

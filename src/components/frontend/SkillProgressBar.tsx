@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { useApp } from '../context/AppContext';
-import { TechSkill } from '../types';
-import { initialTechSkills } from '../data/tech_skills';
+import { useApp } from '../../context/AppContext';
+import { TechSkill } from '../../types';
 import { Cpu, Terminal, Zap, Code, ShieldCheck, Layers, Sparkles } from 'lucide-react';
+
+const initialTechSkills: TechSkill[] = [];
 
 export const SkillProgressBar: React.FC = () => {
   const { data, t, language, getSkillTagline } = useApp();
@@ -12,11 +13,11 @@ export const SkillProgressBar: React.FC = () => {
   const skillsList = (data.techSkills && data.techSkills.length > 0) ? data.techSkills : initialTechSkills;
 
   const categories = [
-    { key: 'all', label: t.skillsFilterAll || '全量矩阵', icon: Layers },
-    { key: 'frontend', label: t.skillsFilterFrontend || '前端核心', icon: Code },
-    { key: 'backend', label: t.skillsFilterBackend || '后端与接口', icon: Terminal },
-    { key: 'ai', label: t.skillsFilterAI || 'AI 与智能体', icon: Zap },
-    { key: 'architecture', label: t.skillsFilterArch || '架构与性能', icon: Cpu },
+    { key: 'all', label: t.skillsFilterAll, icon: Layers },
+    { key: 'frontend', label: t.skillsFilterFrontend , icon: Code },
+    { key: 'backend', label: t.skillsFilterBackend , icon: Terminal },
+    { key: 'ai', label: t.skillsFilterAI , icon: Zap },
+    { key: 'architecture', label: t.skillsFilterArch, icon: Cpu },
   ];
 
   const filteredSkills = activeCategory === 'all'
@@ -55,7 +56,7 @@ export const SkillProgressBar: React.FC = () => {
         {/* Top manga corner badge */}
         <div className="absolute top-0 right-8 bg-black dark:bg-zinc-100 text-yellow-300 dark:text-black font-black text-[10px] tracking-wider px-3 py-1 rounded-b-xl border-x-2 border-b-2 border-black dark:border-zinc-200 shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] flex items-center gap-1.5 uppercase font-mono">
           <Sparkles className="w-3 h-3 text-yellow-300 dark:text-black fill-current" />
-          <span>A1L // SKILL_MATRIX</span>
+          <span>{t.skillMatrixLabel}</span>
         </div>
 
         {/* Section Header */}
@@ -66,7 +67,7 @@ export const SkillProgressBar: React.FC = () => {
             </div>
             <div>
               <h3 className="text-xl md:text-2xl font-black text-black dark:text-white tracking-tight flex items-center gap-2 font-mono">
-                <span>{t.skillsProficiencyTitle || '核心技术栈熟练度'}</span>
+                <span>{t.skillsProficiencyTitle}</span>
               </h3>
             </div>
           </div>

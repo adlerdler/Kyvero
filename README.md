@@ -20,12 +20,12 @@ Kyvero 融合了**硬核新粗野主义 (Neo-Brutalist)** 视觉美学与现代�
 
 ```mermaid
 graph TD
-    A[访客 / Admin] -->|访问主站 / 切换多语言| B(React 18 + Vite 前端 SPA)
-    B -->|动态路由与状态管理| C[AppContext & 状态引擎]
-    C -->|实时访问记录 (60分钟IP防刷)| D[(Supabase PostgreSQL 数据库)]
-    C -->|头像与作品集云端托管| E[Cloudinary CDN 媒体库]
+    A[访客与管理员] -->|访问主站 / 切换多语言| B(React 18 + Vite SPA前端)
+    B -->|状态管理与动态路由| C[AppContext 状态引擎]
+    C -->|实时访问与60分钟防刷| D[Supabase PostgreSQL 数据库]
+    C -->|头像与作品集托管| E[Cloudinary CDN 媒体库]
     D -->|D3.js 半年度热力图| F[访客统计分析后台]
-    D -->|GeoHash 节点模拟| G[全球访客雷达与地理分布]
+    D -->|GeoHash 节点监控| G[全球访客雷达与地理分布]
 ```
 
 ---

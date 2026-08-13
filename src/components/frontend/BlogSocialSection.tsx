@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import {
   BookOpen,
   Github,
@@ -13,7 +13,7 @@ import {
   Sparkles,
   Radio
 } from 'lucide-react';
-import { SocialLink } from '../types';
+import { SocialLink } from '../../types';
 import { motion } from 'motion/react';
 
 export const BlogSocialSection: React.FC = () => {
@@ -86,7 +86,7 @@ export const BlogSocialSection: React.FC = () => {
         {/* Top manga corner badge */}
         <div className="absolute top-0 right-8 bg-black dark:bg-zinc-100 text-yellow-300 dark:text-black font-black text-[10px] tracking-wider px-3 py-1 rounded-b-xl border-x-2 border-b-2 border-black dark:border-zinc-200 shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] flex items-center gap-1.5 uppercase font-mono">
           <Radio className="w-3 h-3 text-yellow-300 dark:text-black animate-pulse" />
-          <span>CYBER_COMM_CHANNELS</span>
+          <span>{t.cyberCommChannels}</span>
         </div>
 
         {/* Section Header */}
@@ -99,7 +99,7 @@ export const BlogSocialSection: React.FC = () => {
               <h3 className="text-xl md:text-2xl font-black text-black dark:text-white tracking-tight flex items-center gap-2 font-mono">
                 <span>{t.blogAndLinksSection}</span>
                 <span className="bg-amber-300 dark:bg-amber-400 text-black text-xs font-black px-2.5 py-0.5 rounded-full border border-black shadow-[1.5px_1.5px_0px_0px_#000]">
-                  {socialLinks.length} CHANNELS
+                  {socialLinks.length} {t.channelsLabel}
                 </span>
               </h3>
             </div>
@@ -112,7 +112,7 @@ export const BlogSocialSection: React.FC = () => {
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
             <span className="text-[11px] font-black font-mono text-black dark:text-zinc-200">
-              MATRIX_STATUS: ACTIVE
+              {t.matrixStatusActive}
             </span>
           </div>
         </div>
@@ -167,7 +167,7 @@ export const BlogSocialSection: React.FC = () => {
                       {link.isPrimary && (
                         <span className="bg-amber-300 dark:bg-amber-400 text-black border border-black px-1.5 py-0.2 text-[9px] font-black rounded shadow-[1px_1px_0px_0px_#000] flex items-center gap-1 shrink-0">
                           <Sparkles className="w-2.5 h-2.5 fill-black" />
-                          <span>RECOMMENDED</span>
+                          <span>{t.recommendedLabel}</span>
                         </span>
                       )}
 
@@ -193,7 +193,7 @@ export const BlogSocialSection: React.FC = () => {
                     whileTap={{ scale: 0.95 }}
                     className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-black dark:bg-amber-400 text-white dark:text-black border-2 border-black px-3.5 py-2 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] hover:bg-zinc-800 dark:hover:bg-amber-300 transition-colors"
                   >
-                    <span>VISIT</span>
+                    <span>{t.visitLabel}</span>
                     <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
                   </motion.a>
 

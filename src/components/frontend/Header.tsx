@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { LANGUAGES } from '../i18n/languages';
-import { LanguageCode } from '../types';
-import { FlagIcon } from './FlagIcon';
+import { useApp } from '../../context/AppContext';
+import { LANGUAGES } from '../../i18n/languages';
+import { LanguageCode } from '../../types';
+import { FlagIcon } from '../shared/FlagIcon';
 import { Terminal, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -26,7 +26,7 @@ export const Header: React.FC = () => {
           <div
             onClick={() => setCurrentView('home')}
             className="relative group cursor-pointer"
-            title={data.systemConfig?.siteTitle || data.profile.siteTitle || `${data.profile.name} - 返回首页`}
+            title={data.systemConfig?.siteTitle || data.profile.siteTitle || `${data.profile.name} - ${t.returnToHome}`}
           >
             <motion.div
               whileHover={{ rotate: [-2, 2, -2, 0], scale: 1.05 }}
@@ -71,7 +71,7 @@ export const Header: React.FC = () => {
                 ? 'bg-slate-900 text-amber-300 border-zinc-200 shadow-[2.5px_2.5px_0px_0px_#38BDF8] hover:bg-slate-800'
                 : 'bg-amber-300 text-black border-black shadow-[2.5px_2.5px_0px_0px_#000] hover:bg-amber-400'
             }`}
-            title={theme === 'dark' ? '切换至明亮模式 / Light Mode' : '切换至暗黑模式 / Dark Mode'}
+            title={theme === 'dark' ? t.switchToLightMode : t.switchToDarkMode}
           >
             {theme === 'dark' ? (
               <Moon className="w-4 h-4 fill-amber-300 text-amber-300 stroke-[2]" />

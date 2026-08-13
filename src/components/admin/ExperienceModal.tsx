@@ -1,8 +1,8 @@
 import React from 'react';
 import { X, Briefcase } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Experience, LanguageCode } from '../types';
-import { useApp } from '../context/AppContext';
+import { Experience, LanguageCode } from '../../types';
+import { useApp } from '../../context/AppContext';
 
 interface Props {
   isOpen: boolean;

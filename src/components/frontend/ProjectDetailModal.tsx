@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import { X, ExternalLink, Github, Calendar, Tag, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -66,7 +66,7 @@ export const ProjectDetailModal: React.FC = () => {
               {selectedProject.featured && (
                 <div className="absolute top-4 right-4 bg-amber-300 text-black border-2 border-black px-3 py-1 rounded-xl text-xs font-black shadow-[3px_3px_0px_0px_#000] flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 fill-black text-black" />
-                  <span>FEATURED PROJECT</span>
+                  <span>{t.featuredProject}</span>
                 </div>
               )}
             </div>
@@ -76,7 +76,7 @@ export const ProjectDetailModal: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2 text-xs font-black text-zinc-500 dark:text-zinc-400 mb-2">
                   <Calendar className="w-3.5 h-3.5" />
-                  <span>Created: {selectedProject.createdAt}</span>
+                  <span>{t.createdLabel}: {selectedProject.createdAt}</span>
                 </div>
                 <p className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 leading-relaxed bg-amber-50 dark:bg-slate-800 border-2 border-black dark:border-zinc-300 p-4 rounded-2xl shadow-[3px_3px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8]">
                   {getProjectSummary(selectedProject)}
@@ -86,7 +86,7 @@ export const ProjectDetailModal: React.FC = () => {
               {getProjectDescription(selectedProject) && (
                 <div>
                   <h4 className="text-xs font-black uppercase text-zinc-600 dark:text-amber-300 tracking-wider mb-1.5">
-                    Detailed Architecture & Overview
+                    {t.projectDescriptionTitle}
                   </h4>
                   <p className="text-sm font-bold text-zinc-700 dark:text-zinc-200 leading-relaxed whitespace-pre-line">
                     {getProjectDescription(selectedProject)}

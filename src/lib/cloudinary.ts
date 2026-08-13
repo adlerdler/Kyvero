@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { t } from './i18nHelper';
 
 const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '';
 const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
@@ -33,7 +34,7 @@ export async function signParameters(params: Record<string, string | number>, se
  */
 export async function uploadToCloudinaryUnsigned(file: File): Promise<string> {
   if (!isCloudinaryConfigured) {
-    throw new Error('Cloudinary 无签名模式未配置。请在 .env 中设置 VITE_CLOUDINARY_CLOUD_NAME 和 VITE_CLOUDINARY_UPLOAD_PRESET。');
+    throw new Error(t('cloudinaryUnsignedNotConfigured'));
   }
 
   const formData = new FormData();
@@ -50,7 +51,7 @@ export async function uploadToCloudinaryUnsigned(file: File): Promise<string> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error?.message || `Cloudinary 上传失败: ${response.statusText}`);
+    throw new Error(errorData.error?.message || `${t('cloudinaryUploadFailed')}${response.statusText}`);
   }
 
   const data = await response.json();
@@ -62,7 +63,7 @@ export async function uploadToCloudinaryUnsigned(file: File): Promise<string> {
  */
 export async function uploadToCloudinarySigned(file: File): Promise<string> {
   if (!cloudName || !apiKey || !apiSecret) {
-    throw new Error('Cloudinary 签名模式未配置。请在 .env 中设置 VITE_CLOUDINARY_CLOUD_NAME、VITE_CLOUDINARY_API_KEY 和 VITE_CLOUDINARY_API_SECRET。');
+    throw new Error(t('cloudinarySignedNotConfigured'));
   }
 
   const timestamp = Math.round(new Date().getTime() / 1000);
@@ -95,7 +96,7 @@ export async function uploadToCloudinarySigned(file: File): Promise<string> {
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error?.message || `Cloudinary 签名上传失败: ${response.statusText}`);
+    throw new Error(errorData.error?.message || `${t('cloudinarySignedUploadFailed')}${response.statusText}`);
   }
 
   const data = await response.json();
@@ -119,7 +120,7 @@ export function extractPublicId(url: string): string | null {
     if (dotIndex === -1) return withoutVersion;
     return withoutVersion.substring(0, dotIndex);
   } catch (e) {
-    console.error('解析 Cloudinary public_id 失败:', e);
+    console.error(t('cloudinaryExtractIdFailed'), e);
     return null;
   }
 }
@@ -131,12 +132,12 @@ export function extractPublicId(url: string): string | null {
 export async function deleteFromCloudinary(url: string): Promise<boolean> {
   const publicId = extractPublicId(url);
   if (!publicId) {
-    console.warn('非 Cloudinary 图片，无法在云端删除：', url);
+    console.warn(t('cloudinaryNotCloudinaryImage'), url);
     return false;
   }
 
   if (!isSignedConfigured || !cloudName || !apiKey || !apiSecret) {
-    console.warn('Cloudinary 签名信息未配置，无法在云端删除');
+    console.warn(t('cloudinarySignNotConfiguredDelete'));
     return false;
   }
 
@@ -165,19 +166,17 @@ export async function deleteFromCloudinary(url: string): Promise<boolean> {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('Cloudinary 销毁文件失败:', errorData.error?.message || response.statusText);
+      console.error(t('cloudinaryDestroyFailed'), errorData.error?.message || response.statusText);
       return false;
     }
 
     const data = await response.json();
     return data.result === 'ok';
   } catch (err) {
-    console.error('Cloudinary 删除请求网络异常:', err);
+    console.error(t('cloudinaryNetworkError'), err);
     return false;
   }
 }
 
 // 统一导出默认上传函数，优先使用 Signed 签名模式上传
 export const uploadToCloudinary = isSignedConfigured ? uploadToCloudinarySigned : uploadToCloudinaryUnsigned;
-
-

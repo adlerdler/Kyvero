@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { SiteData, LanguageCode, Project, Profile, SocialLink, FooterLink, TechSkill, MediaItem, SystemConfig, Experience, User, VisitorLogEntry } from '../types';
-import { INITIAL_SITE_DATA, initialUsers } from '../data/initialData';
+import { INITIAL_SITE_DATA } from '../data/initialData';
 import { DEFAULT_LANGUAGE, TRANSLATIONS, TranslationDictionary } from '../i18n/languages';
 import {
   fetchAllSiteDataFromSupabase,
@@ -126,7 +126,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           socialLinks: dbData.socialLinks && dbData.socialLinks.length > 0 ? dbData.socialLinks : prev.socialLinks,
           footerLinks: dbData.footerLinks && dbData.footerLinks.length > 0 ? dbData.footerLinks : prev.footerLinks,
           mediaItems: dbData.mediaItems && dbData.mediaItems.length > 0 ? dbData.mediaItems : prev.mediaItems,
-          users: dbData.users && dbData.users.length > 0 ? dbData.users : prev.users
+          users: dbData.users && dbData.users.length > 0 ? dbData.users : prev.users,
+          totalVisits: dbData.totalVisits !== undefined ? dbData.totalVisits : prev.totalVisits
         }));
       }
     }
@@ -143,7 +144,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [data]);
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const userList = (data?.users && data.users.length > 0) ? data.users : (INITIAL_SITE_DATA.users || initialUsers);
+    const userList = (data?.users && data.users.length > 0) ? data.users : (INITIAL_SITE_DATA.users || []);
     try {
       const savedUsername = localStorage.getItem('manga_portfolio_current_user');
       if (savedUsername) {
@@ -153,7 +154,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {
       // ignore
     }
-    return userList[0] || initialUsers[0];
+    return userList[0] || undefined;
   });
 
   // Language state
@@ -303,7 +304,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Update local state
       setData(prev => ({
         ...prev,
-        analytics: [...(prev.analytics || []), newLog]
+        analytics: [...(prev.analytics || []), newLog],
+        totalVisits: (prev.totalVisits || 0) + 1
       }));
 
       // Sync to Supabase database
@@ -349,7 +351,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [language, customTranslations]);
 
   const loginAdmin = (password: string, username?: string) => {
-    const userList = (data?.users && data.users.length > 0) ? data.users : (INITIAL_SITE_DATA.users || initialUsers);
+    const userList = (data?.users && data.users.length > 0) ? data.users : (INITIAL_SITE_DATA.users || []);
     const trimmedPw = password.trim();
     const trimmedUser = (username || '').trim().toLowerCase();
 
@@ -390,7 +392,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updatePassword = (currentPassword: string, newPassword: string) => {
-    const activeUser = currentUser || (data?.users && data.users[0]) || initialUsers[0];
+    const activeUser = currentUser || (data?.users && data.users[0]) || undefined;
     if (!activeUser) {
       return { success: false, messageKey: 'invalidPassword' as keyof TranslationDictionary };
     }
@@ -401,7 +403,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { success: false, messageKey: 'invalidPassword' as keyof TranslationDictionary };
     }
 
-    const updatedUsers = ((data?.users && data.users.length > 0) ? data.users : initialUsers).map(u => {
+    const updatedUsers = ((data?.users && data.users.length > 0) ? data.users : []).map(u => {
       if (u.id === activeUser.id || u.username === activeUser.username) {
         return { ...u, password: newPassword.trim() };
       }
@@ -416,7 +418,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
     setCurrentUser(updatedActiveUser);
 
-    showToast(getI18nStr('passwordChangedSuccess') || '密码修改成功！');
+    showToast(getI18nStr('passwordChangedSuccess'));
     return { success: true };
   };
 
@@ -428,9 +430,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
     const res = await syncProfileToSupabase(newProfile);
     if (res.success) {
-      showToast(`${getI18nStr('toastProfileUpdated')} (已同步至 Supabase 云端)`);
+      showToast(`${getI18nStr('toastProfileUpdated')} (${getI18nStr('toastSyncSuccess')})`);
     } else {
-      showToast(`${getI18nStr('toastProfileUpdated')} (本地保存成功, Supabase同步: ${res.error || '未配置'})`);
+      showToast(`${getI18nStr('toastProfileUpdated')} (${getI18nStr('toastLocalSuccess')}, Supabase: ${res.error || getI18nStr('notConfigured')})`);
     }
   };
 
@@ -441,9 +443,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
     const res = await syncSystemConfigToSupabase(newConfig);
     if (res.success) {
-      showToast(`${getI18nStr('toastProfileUpdated') || '系统设置已更新'} (已同步至 Supabase 云端)`);
+      showToast(`${getI18nStr('toastSystemConfigUpdated')} (${getI18nStr('toastSyncSuccess')})`);
     } else {
-      showToast(`${getI18nStr('toastProfileUpdated') || '系统设置已更新'} (本地保存成功, Supabase同步: ${res.error || '未配置'})`);
+      showToast(`${getI18nStr('toastSystemConfigUpdated')} (${getI18nStr('toastLocalSuccess')}, Supabase: ${res.error || getI18nStr('notConfigured')})`);
     }
   };
 
@@ -477,7 +479,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       projects: [newProj, ...prev.projects]
     }));
     const res = await syncProjectToSupabase(newProj);
-    showToast(res.success ? `${getI18nStr('toastProjectAdded')} (同步云端成功)` : `${getI18nStr('toastProjectAdded')} (本地成功, Supabase: ${res.error || '未配置'})`);
+    showToast(res.success ? `${getI18nStr('toastProjectAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastProjectAdded')} (${getI18nStr('toastLocalSuccess')}, Supabase: ${res.error || getI18nStr('notConfigured')})`);
   };
 
   const updateProject = async (updatedProject: Project) => {
@@ -486,7 +488,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       projects: prev.projects.map(p => (p.id === updatedProject.id ? updatedProject : p))
     }));
     const res = await syncProjectToSupabase(updatedProject);
-    showToast(res.success ? `${getI18nStr('toastProjectUpdated')} (同步云端成功)` : `${getI18nStr('toastProjectUpdated')} (本地成功, Supabase: ${res.error || '未配置'})`);
+    showToast(res.success ? `${getI18nStr('toastProjectUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastProjectUpdated')} (${getI18nStr('toastLocalSuccess')}, Supabase: ${res.error || getI18nStr('notConfigured')})`);
   };
 
   const deleteProject = async (id: string) => {
@@ -508,7 +510,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       socialLinks: [...(prev.socialLinks || []), newLink]
     }));
     const res = await syncSocialLinkToSupabase(newLink);
-    showToast(res.success ? `${getI18nStr('toastLinkAdded')} (同步云端成功)` : `${getI18nStr('toastLinkAdded')} (本地成功, Supabase: ${res.error || '未配置'})`);
+    showToast(res.success ? `${getI18nStr('toastLinkAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastLinkAdded')} (${getI18nStr('toastLocalSuccess')}, Supabase: ${res.error || getI18nStr('notConfigured')})`);
   };
 
   const updateSocialLink = async (updatedLink: SocialLink) => {
@@ -517,7 +519,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       socialLinks: (prev.socialLinks || []).map(l => (l.id === updatedLink.id ? updatedLink : l))
     }));
     const res = await syncSocialLinkToSupabase(updatedLink);
-    showToast(res.success ? `${getI18nStr('toastLinkUpdated')} (同步云端成功)` : `${getI18nStr('toastLinkUpdated')} (本地成功, Supabase: ${res.error || '未配置'})`);
+    showToast(res.success ? `${getI18nStr('toastLinkUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastLinkUpdated')} (${getI18nStr('toastLocalSuccess')}, Supabase: ${res.error || getI18nStr('notConfigured')})`);
   };
 
   const deleteSocialLink = async (id: string) => {
@@ -539,7 +541,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       footerLinks: [...(prev.footerLinks || []), newLink]
     }));
     const res = await syncFooterLinkToSupabase(newLink);
-    showToast(res.success ? `${getI18nStr('toastFooterLinkAdded')} (同步云端成功)` : `${getI18nStr('toastFooterLinkAdded')} (本地成功)`);
+    showToast(res.success ? `${getI18nStr('toastFooterLinkAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastFooterLinkAdded')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
   const updateFooterLink = async (updatedLink: FooterLink) => {
@@ -548,7 +550,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       footerLinks: (prev.footerLinks || []).map(l => (l.id === updatedLink.id ? updatedLink : l))
     }));
     const res = await syncFooterLinkToSupabase(updatedLink);
-    showToast(res.success ? `${getI18nStr('toastFooterLinkUpdated')} (同步云端成功)` : `${getI18nStr('toastFooterLinkUpdated')} (本地成功)`);
+    showToast(res.success ? `${getI18nStr('toastFooterLinkUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastFooterLinkUpdated')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
   const deleteFooterLink = async (id: string) => {
@@ -570,7 +572,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       techSkills: [...(prev.techSkills || []), newSkill]
     }));
     const res = await syncTechSkillToSupabase(newSkill);
-    showToast(res.success ? `${getI18nStr('toastSkillAdded')} (同步云端成功)` : `${getI18nStr('toastSkillAdded')} (本地成功)`);
+    showToast(res.success ? `${getI18nStr('toastSkillAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastSkillAdded')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
   const updateTechSkill = async (updatedSkill: TechSkill) => {
@@ -579,7 +581,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       techSkills: (prev.techSkills || []).map(s => (s.id === updatedSkill.id ? updatedSkill : s))
     }));
     const res = await syncTechSkillToSupabase(updatedSkill);
-    showToast(res.success ? `${getI18nStr('toastSkillUpdated')} (同步云端成功)` : `${getI18nStr('toastSkillUpdated')} (本地成功)`);
+    showToast(res.success ? `${getI18nStr('toastSkillUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastSkillUpdated')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
   const deleteTechSkill = async (id: string) => {
@@ -602,7 +604,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       mediaItems: [newItem, ...(prev.mediaItems || [])]
     }));
     const res = await syncMediaItemToSupabase(newItem);
-    showToast(res.success ? `${getI18nStr('toastMediaAdded')} (同步云端成功)` : `${getI18nStr('toastMediaAdded')} (本地成功)`);
+    showToast(res.success ? `${getI18nStr('toastMediaAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastMediaAdded')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
   const deleteMediaItem = async (id: string) => {
@@ -624,7 +626,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       experiences: [newExp, ...(prev.experiences || [])]
     }));
     const res = await syncExperienceToSupabase(newExp);
-    showToast(res.success ? `${t.toastExperienceAdded} (同步云端成功)` : `${t.toastExperienceAdded} (本地成功)`);
+    showToast(res.success ? `${getI18nStr('toastExperienceAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastExperienceAdded')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
   const updateExperience = async (updatedExp: Experience) => {
@@ -633,7 +635,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       experiences: (prev.experiences || []).map(e => (e.id === updatedExp.id ? updatedExp : e))
     }));
     const res = await syncExperienceToSupabase(updatedExp);
-    showToast(res.success ? `${t.toastExperienceUpdated} (同步云端成功)` : `${t.toastExperienceUpdated} (本地成功)`);
+    showToast(res.success ? `${getI18nStr('toastExperienceUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastExperienceUpdated')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
   const deleteExperience = async (id: string) => {
@@ -746,7 +748,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         searchQuery,
         toastMessage,
         currentUser,
-        users: data?.users && data.users.length > 0 ? data.users : initialUsers,
+        users: data?.users && data.users.length > 0 ? data.users : [],
         setLanguage,
         toggleTheme,
         setCurrentView,

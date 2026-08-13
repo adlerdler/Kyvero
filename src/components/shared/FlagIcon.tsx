@@ -1,5 +1,5 @@
 import React from 'react';
-import { LanguageCode } from '../types';
+import { LanguageCode } from '../../types';
 
 interface FlagIconProps {
   code: LanguageCode;

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import { Key, ShieldCheck, ArrowLeft, Sun, Moon, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LANGUAGES, LanguageCode } from '../i18n/languages';
-import { FlagIcon } from './FlagIcon';
+import { LANGUAGES, LanguageCode } from '../../i18n/languages';
+import { FlagIcon } from '../shared/FlagIcon';
 
 export const AdminLoginPage: React.FC = () => {
   const { loginAdmin, t, setCurrentView, theme, toggleTheme, language, setLanguage, users } = useApp();
@@ -47,7 +47,7 @@ export const AdminLoginPage: React.FC = () => {
                 ? 'bg-slate-900 text-amber-300 border-zinc-200 shadow-[2px_2px_0px_0px_#38BDF8]'
                 : 'bg-amber-300 text-black border-black shadow-[2px_2px_0px_0px_#000] hover:bg-amber-400'
             }`}
-            title={theme === 'dark' ? '切换至明亮模式' : '切换至暗黑模式'}
+            title={theme === 'dark' ? t.switchToLightMode : t.switchToDarkMode}
           >
             {theme === 'dark' ? (
               <Moon className="w-4 h-4 fill-amber-300 text-amber-300 stroke-[2]" />

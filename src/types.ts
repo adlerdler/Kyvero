@@ -49,7 +49,7 @@ export interface Profile {
   speechBubbleText: Record<LanguageCode, string> | string;
   bioLines: Record<LanguageCode, string[]> | string[];
   location: Record<LanguageCode, string> | string;
-  statusText: string;
+  statusText: Record<LanguageCode, string> | string;
   skills: string[];
   blogUrl: string;
   githubUrl: string;
@@ -120,6 +120,7 @@ export interface SiteData {
   mediaItems?: MediaItem[];
   experiences?: Experience[];
   analytics?: VisitorLogEntry[];
+  totalVisits?: number;
   systemConfig?: SystemConfig;
   users?: User[];
 }

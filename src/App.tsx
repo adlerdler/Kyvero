@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
-import { Header } from './components/Header';
-import { MangaHero } from './components/MangaHero';
-import { SkillProgressBar } from './components/SkillProgressBar';
-import { ExperienceTimeline } from './components/ExperienceTimeline';
-import { ProjectsGrid } from './components/ProjectsGrid';
-import { BlogSocialSection } from './components/BlogSocialSection';
-import { ProjectDetailModal } from './components/ProjectDetailModal';
-import { AdminLoginPage } from './components/AdminLoginPage';
-import { AdminDashboard } from './components/AdminDashboard';
+import { Header } from './components/frontend/Header';
+import { MangaHero } from './components/frontend/MangaHero';
+import { SkillProgressBar } from './components/frontend/SkillProgressBar';
+import { ExperienceTimeline } from './components/frontend/ExperienceTimeline';
+import { ProjectsGrid } from './components/frontend/ProjectsGrid';
+import { BlogSocialSection } from './components/frontend/BlogSocialSection';
+import { ProjectDetailModal } from './components/frontend/ProjectDetailModal';
+import { AdminLoginPage } from './components/admin/AdminLoginPage';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 import { GlobalAdminShortcutListener } from './components/GlobalAdminShortcutListener';
-import { AnimeLoader } from './components/AnimeLoader';
-import { VisitorCounter } from './components/VisitorCounter';
+import { AnimeLoader } from './components/frontend/AnimeLoader';
+import { VisitorCounter } from './components/frontend/VisitorCounter';
 import { Sparkles, Terminal, Shield, ChevronDown, Github, Twitter, Mail, Globe, Tv, Share2, ExternalLink, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -222,7 +222,7 @@ function MainLayout() {
 
                       {/* Copyright Information */}
                       <div className="mt-1 text-[11px] font-bold text-zinc-600 dark:text-zinc-400 flex flex-wrap items-center gap-x-2 gap-y-0.5 leading-relaxed">
-                        <span>{data.systemConfig?.copyrightText || data.profile.copyrightText || `© 2026 ${data.profile.name}. All rights reserved.`}</span>
+                        <span>{data.systemConfig?.copyrightText || data.profile.copyrightText || `© 2026 ${data.profile.name}. ${t.copyrightReserved}`}</span>
                         {(data.systemConfig?.copyrightSubtext || data.profile.copyrightSubtext) && (
                           <>
                             <span className="text-zinc-400 dark:text-zinc-600">•</span>
@@ -239,15 +239,6 @@ function MainLayout() {
                     {/* Right Action Zone */}
                     <div className="flex flex-wrap items-center gap-3 md:gap-4 self-end md:self-auto">
                       <VisitorCounter />
-
-                      <button
-                        onClick={() => setCurrentView('admin')}
-                        className="flex items-center gap-1.5 bg-cyan-200 dark:bg-amber-400 text-black border-2 border-black px-3.5 py-1.5 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] hover:bg-cyan-300 dark:hover:bg-amber-300 active:translate-y-0.5 transition-all"
-                        title="进入控制台"
-                      >
-                        <Shield className="w-3.5 h-3.5 stroke-[2.5]" />
-                        <span>{t.adminDashboard}</span>
-                      </button>
                     </div>
 
                   </div>

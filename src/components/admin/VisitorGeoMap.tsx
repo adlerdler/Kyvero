@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
 import { MapPin } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { initialAnalytics } from '../data/analytics';
+import { useApp } from '../../context/AppContext';
+
+const initialAnalytics: any[] = [];
 
 export interface CountryGeoData {
   numericId: string;

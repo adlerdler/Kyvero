@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import { MapPin, Zap, ExternalLink, Sparkles, MessageSquare, Code2, ArrowUpRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -77,7 +77,7 @@ export const MangaHero: React.FC = () => {
               >
                 <span className="font-extrabold text-[11px] text-black tracking-tight flex items-center justify-center gap-1">
                   <Zap className="w-3.5 h-3.5 fill-black text-black" />
-                  {profile.statusText}
+                  {getProfileField(profile.statusText)}
                 </span>
               </motion.div>
             </div>
@@ -153,7 +153,7 @@ export const MangaHero: React.FC = () => {
                   {t.techStack}
                 </span>
                 <span className="bg-cyan-300 dark:bg-cyan-400 text-black text-[10px] font-black px-1.5 py-0.5 border border-black rounded shadow-[1px_1px_0px_0px_#000]">
-                  SPECS!
+                  {t.specsLabel}
                 </span>
               </div>
 

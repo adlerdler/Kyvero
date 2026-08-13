@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { useApp } from '../context/AppContext';
-import { LANGUAGES, LanguageCode, TRANSLATIONS, TranslationDictionary } from '../i18n/languages';
+import { useApp } from '../../context/AppContext';
+import { LANGUAGES, LanguageCode, TRANSLATIONS, TranslationDictionary } from '../../i18n/languages';
 import { motion, AnimatePresence } from 'motion/react';
 import { Search, RotateCcw, Save, Globe, HelpCircle, Edit3 } from 'lucide-react';
 
@@ -171,14 +171,14 @@ export const LanguageManager: React.FC = () => {
           </h4>
         </div>
 
-        <button
-          type="button"
-          onClick={resetTranslations}
-          className="self-start md:self-auto bg-rose-100 hover:bg-rose-200 text-rose-800 border-2 border-black px-3.5 py-1.5 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_#000] transition-all flex items-center gap-1.5 shrink-0"
-        >
-          <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
-          <span>{t.langResetAll}</span>
-        </button>
+          <button
+            type="button"
+            onClick={resetTranslations}
+            className="self-start md:self-auto bg-rose-100 hover:bg-rose-200 text-rose-800 dark:bg-rose-900/40 dark:hover:bg-rose-900/60 dark:text-rose-200 border-2 border-black dark:border-zinc-500 px-3.5 py-1.5 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#F43F5E] active:translate-y-0.5 active:shadow-[1px_1px_0px_0px_#000] transition-all flex items-center gap-1.5 shrink-0"
+          >
+            <RotateCcw className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>{t.langResetAll}</span>
+          </button>
       </div>
 
       {/* Main Translation Content Grid */}

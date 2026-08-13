@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { t } from './i18nHelper';
 
 // Resolve Supabase credentials: local custom settings take precedence over ENV
 export function getSupabaseCredentials(): { url: string; key: string } {
@@ -81,13 +82,13 @@ export function saveCustomSupabaseConfig(url: string, key: string): { success: b
 export async function testSupabaseConnection(): Promise<{ connected: boolean; message: string; isServiceRole?: boolean }> {
   const client = getSupabaseClient();
   if (!client) {
-    return { connected: false, message: '未配置 Supabase URL 或 API Key' };
+    return { connected: false, message: t('supabaseNotConfiguredMsg') };
   }
 
   try {
     const { error } = await client.from('profiles').select('id').limit(1);
     if (error) {
-      return { connected: false, message: `连接异常: ${error.message} (${error.code || ''})` };
+      return { connected: false, message: `${t('supabaseConnectionException')}${error.message} (${error.code || ''})` };
     }
     
     // Check key type indicator
@@ -97,18 +98,18 @@ export async function testSupabaseConnection(): Promise<{ connected: boolean; me
     return { 
       connected: true, 
       message: isServiceRole 
-        ? 'Supabase 数据库连接成功！已检测到 Service Role Key (管理权限已开启，免受 RLS 限制)' 
-        : 'Supabase 数据库连接正常，读取权限就绪',
+        ? t('supabaseServiceRoleConnected')
+        : t('supabaseNormalConnected'),
       isServiceRole
     };
   } catch (err: any) {
-    return { connected: false, message: `网络或连接失败: ${err.message || '未知错误'}` };
+    return { connected: false, message: `${t('supabaseNetworkFailed')}${err.message || '未知错误'}` };
   }
 }
 
 export async function loginToSupabaseAuth(email: string, pass: string): Promise<{ success: boolean; error?: string; user?: any }> {
   const client = getSupabaseClient();
-  if (!client) return { success: false, error: 'Supabase 未配置' };
+  if (!client) return { success: false, error: t('supabaseNotConfigured') };
   
   try {
     const { data, error } = await client.auth.signInWithPassword({
@@ -118,7 +119,7 @@ export async function loginToSupabaseAuth(email: string, pass: string): Promise<
     if (error) return { success: false, error: error.message };
     return { success: true, user: data.user };
   } catch (err: any) {
-    return { success: false, error: err.message || '登录抛出异常' };
+    return { success: false, error: err.message || t('supabaseLoginException') };
   }
 }
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Terminal, Zap, Code2 } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../../context/AppContext';
 
 interface AnimeLoaderProps {
   isLoading: boolean;

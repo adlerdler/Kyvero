@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ImageIcon, Upload, Loader2, X } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { uploadToCloudinary, isCloudinaryConfigured } from '../lib/cloudinary';
+import { useApp } from '../../context/AppContext';
+import { uploadToCloudinary, isCloudinaryConfigured } from '../../lib/cloudinary';
 
 export interface MediaPreset {
   name: string;

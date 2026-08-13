@@ -23,7 +23,7 @@ export const GlobalAdminShortcutListener: React.FC = () => {
         if (bufferRef.current === 'admin') {
           bufferRef.current = '';
           if (currentView !== 'admin') {
-            showToast(t.easterEggToast || '🎯 已侦测到快捷指令 "admin"！');
+            showToast(t.easterEggToast);
             setCurrentView('admin');
           }
         }

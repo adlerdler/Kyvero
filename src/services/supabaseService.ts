@@ -1,4 +1,5 @@
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
+import { t } from '../lib/i18nHelper';
 import {
   SiteData,
   Profile,
@@ -40,7 +41,8 @@ export async function fetchAllSiteDataFromSupabase(): Promise<Partial<SiteData> 
       { data: footerLinks, error: flErr },
       { data: mediaItems, error: miErr },
       { data: users, error: uErr },
-      { data: analytics, error: aErr }
+      { data: analytics, error: aErr },
+      { count: analyticsCount }
     ] = await Promise.all([
       supabase.from('profiles').select('*'),
       supabase.from('system_config').select('*'),
@@ -51,7 +53,8 @@ export async function fetchAllSiteDataFromSupabase(): Promise<Partial<SiteData> 
       supabase.from('footer_links').select('*'),
       supabase.from('media_items').select('*'),
       supabase.from('users').select('*'),
-      supabase.from('analytics').select('*').order('timestamp', { ascending: false }).limit(50)
+      supabase.from('analytics').select('*').order('timestamp', { ascending: false }).limit(100),
+      supabase.from('analytics').select('*', { count: 'exact', head: true })
     ]);
 
     if (pErr) console.warn('[Supabase Fetch Profiles Error]', pErr);
@@ -59,6 +62,10 @@ export async function fetchAllSiteDataFromSupabase(): Promise<Partial<SiteData> 
     if (projErr) console.warn('[Supabase Fetch Projects Error]', projErr);
 
     const result: Partial<SiteData> = {};
+
+    if (analyticsCount !== null) {
+      result.totalVisits = analyticsCount;
+    }
 
     // Map profile
     if (profiles && profiles.length > 0) {
@@ -137,8 +144,8 @@ export async function fetchAllSiteDataFromSupabase(): Promise<Partial<SiteData> 
         id: e.id,
         company: e.company || {},
         role: e.role || {},
-        startDate: e.period ? e.period.split('-')[0]?.trim() || '2021' : '2021',
-        endDate: e.period ? e.period.split('-')[1]?.trim() || 'Present' : 'Present',
+        startDate: e.start_date || '2021',
+        endDate: e.end_date || 'Present',
         description: e.description || {},
         technologies: e.technologies || []
       }));
@@ -214,7 +221,7 @@ export async function fetchAllSiteDataFromSupabase(): Promise<Partial<SiteData> 
 export async function syncProfileToSupabase(profile: Profile): Promise<SyncResult> {
   const supabase = getSupabaseClient();
   if (!supabase) {
-    return { success: false, error: 'Supabase 未连接/配置' };
+    return { success: false, error: t('supabaseNotConnected') };
   }
   
   const idToUse = profile.id || 'profile_default';
@@ -238,7 +245,7 @@ export async function syncProfileToSupabase(profile: Profile): Promise<SyncResul
 
   const { error } = await supabase.from('profiles').upsert(payload);
   if (error) {
-    console.error('Supabase profile sync error:', error);
+    console.error(t('supabaseProfileSyncError'), error);
     return { success: false, error: `${error.message} (${error.code || ''})` };
   }
   return { success: true };
@@ -247,7 +254,7 @@ export async function syncProfileToSupabase(profile: Profile): Promise<SyncResul
 // 3. Save System Config
 export async function syncSystemConfigToSupabase(sysConfig: SystemConfig): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('system_config').upsert({
     id: 'default',
@@ -260,7 +267,7 @@ export async function syncSystemConfigToSupabase(sysConfig: SystemConfig): Promi
     build_channel: sysConfig.buildChannel
   });
   if (error) {
-    console.error('Supabase system_config sync error:', error);
+    console.error(t('supabaseSystemConfigSyncError'), error);
     return { success: false, error: `${error.message} (${error.code || ''})` };
   }
   return { success: true };
@@ -269,7 +276,7 @@ export async function syncSystemConfigToSupabase(sysConfig: SystemConfig): Promi
 // 4. Save/Delete Projects
 export async function syncProjectToSupabase(project: Project): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('projects').upsert({
     id: project.id,
@@ -285,7 +292,7 @@ export async function syncProjectToSupabase(project: Project): Promise<SyncResul
     created_at: project.createdAt || new Date().toISOString()
   });
   if (error) {
-    console.error('Supabase project sync error:', error);
+    console.error(t('supabaseProjectSyncError'), error);
     return { success: false, error: `${error.message} (${error.code || ''})` };
   }
   return { success: true };
@@ -293,7 +300,7 @@ export async function syncProjectToSupabase(project: Project): Promise<SyncResul
 
 export async function deleteProjectFromSupabase(id: string): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('projects').delete().eq('id', id);
   if (error) return { success: false, error: error.message };
@@ -303,7 +310,7 @@ export async function deleteProjectFromSupabase(id: string): Promise<SyncResult>
 // 5. Save/Delete Tech Skills
 export async function syncTechSkillToSupabase(skill: TechSkill): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('tech_skills').upsert({
     id: skill.id,
@@ -315,7 +322,7 @@ export async function syncTechSkillToSupabase(skill: TechSkill): Promise<SyncRes
     tagline: skill.tagline
   });
   if (error) {
-    console.error('Supabase tech_skill sync error:', error);
+    console.error(t('supabaseTechSkillSyncError'), error);
     return { success: false, error: `${error.message} (${error.code || ''})` };
   }
   return { success: true };
@@ -323,7 +330,7 @@ export async function syncTechSkillToSupabase(skill: TechSkill): Promise<SyncRes
 
 export async function deleteTechSkillFromSupabase(id: string): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('tech_skills').delete().eq('id', id);
   if (error) return { success: false, error: error.message };
@@ -333,7 +340,7 @@ export async function deleteTechSkillFromSupabase(id: string): Promise<SyncResul
 // 6. Save/Delete Experiences
 export async function syncExperienceToSupabase(exp: Experience): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('experiences').upsert({
     id: exp.id,
@@ -345,7 +352,7 @@ export async function syncExperienceToSupabase(exp: Experience): Promise<SyncRes
     technologies: exp.technologies
   });
   if (error) {
-    console.error('Supabase experience sync error:', error);
+    console.error(t('supabaseExperienceSyncError'), error);
     return { success: false, error: `${error.message} (${error.code || ''})` };
   }
   return { success: true };
@@ -353,7 +360,7 @@ export async function syncExperienceToSupabase(exp: Experience): Promise<SyncRes
 
 export async function deleteExperienceFromSupabase(id: string): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('experiences').delete().eq('id', id);
   if (error) return { success: false, error: error.message };
@@ -363,7 +370,7 @@ export async function deleteExperienceFromSupabase(id: string): Promise<SyncResu
 // 7. Save/Delete Social Links
 export async function syncSocialLinkToSupabase(social: SocialLink): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('social_links').upsert({
     id: social.id,
@@ -375,7 +382,7 @@ export async function syncSocialLinkToSupabase(social: SocialLink): Promise<Sync
     is_primary: social.isPrimary
   });
   if (error) {
-    console.error('Supabase social_link sync error:', error);
+    console.error(t('supabaseSocialLinkSyncError'), error);
     return { success: false, error: `${error.message} (${error.code || ''})` };
   }
   return { success: true };
@@ -383,7 +390,7 @@ export async function syncSocialLinkToSupabase(social: SocialLink): Promise<Sync
 
 export async function deleteSocialLinkFromSupabase(id: string): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('social_links').delete().eq('id', id);
   if (error) return { success: false, error: error.message };
@@ -393,7 +400,7 @@ export async function deleteSocialLinkFromSupabase(id: string): Promise<SyncResu
 // 8. Save/Delete Footer Links
 export async function syncFooterLinkToSupabase(link: FooterLink): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('footer_links').upsert({
     id: link.id,
@@ -402,7 +409,7 @@ export async function syncFooterLinkToSupabase(link: FooterLink): Promise<SyncRe
     icon_type: link.iconType
   });
   if (error) {
-    console.error('Supabase footer_link sync error:', error);
+    console.error(t('supabaseFooterLinkSyncError'), error);
     return { success: false, error: `${error.message} (${error.code || ''})` };
   }
   return { success: true };
@@ -410,7 +417,7 @@ export async function syncFooterLinkToSupabase(link: FooterLink): Promise<SyncRe
 
 export async function deleteFooterLinkFromSupabase(id: string): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('footer_links').delete().eq('id', id);
   if (error) return { success: false, error: error.message };
@@ -420,7 +427,7 @@ export async function deleteFooterLinkFromSupabase(id: string): Promise<SyncResu
 // 9. Save/Delete Media Items
 export async function syncMediaItemToSupabase(item: MediaItem): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('media_items').upsert({
     id: item.id,
@@ -430,7 +437,7 @@ export async function syncMediaItemToSupabase(item: MediaItem): Promise<SyncResu
     size: item.size || '120 KB'
   });
   if (error) {
-    console.error('Supabase media_item sync error:', error);
+    console.error(t('supabaseMediaItemSyncError'), error);
     return { success: false, error: `${error.message} (${error.code || ''})` };
   }
   return { success: true };
@@ -438,7 +445,7 @@ export async function syncMediaItemToSupabase(item: MediaItem): Promise<SyncResu
 
 export async function deleteMediaItemFromSupabase(id: string): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('media_items').delete().eq('id', id);
   if (error) return { success: false, error: error.message };
@@ -448,7 +455,7 @@ export async function deleteMediaItemFromSupabase(id: string): Promise<SyncResul
 // 10. Record Visitor Log
 export async function syncVisitorLogToSupabase(log: VisitorLogEntry): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('analytics').insert({
     id: log.id,
@@ -459,7 +466,7 @@ export async function syncVisitorLogToSupabase(log: VisitorLogEntry): Promise<Sy
     ip_hash: log.ipHash
   });
   if (error) {
-    console.error('Supabase analytics sync error:', error);
+    console.error(t('supabaseAnalyticsSyncError'), error);
     return { success: false, error: `${error.message} (${error.code || ''})` };
   }
   return { success: true };
@@ -468,7 +475,7 @@ export async function syncVisitorLogToSupabase(log: VisitorLogEntry): Promise<Sy
 // 11. Save/Delete Users
 export async function syncUserToSupabase(user: User): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('users').upsert({
     id: user.id,
@@ -480,7 +487,7 @@ export async function syncUserToSupabase(user: User): Promise<SyncResult> {
     email: user.email
   });
   if (error) {
-    console.error('Supabase user sync error:', error);
+    console.error(t('supabaseUserSyncError'), error);
     return { success: false, error: `${error.message} (${error.code || ''})` };
   }
   return { success: true };
@@ -488,7 +495,7 @@ export async function syncUserToSupabase(user: User): Promise<SyncResult> {
 
 export async function deleteUserFromSupabase(id: string): Promise<SyncResult> {
   const supabase = getSupabaseClient();
-  if (!supabase) return { success: false, error: 'Supabase 未连接/配置' };
+  if (!supabase) return { success: false, error: t('supabaseNotConnected') };
 
   const { error } = await supabase.from('users').delete().eq('id', id);
   if (error) return { success: false, error: error.message };
