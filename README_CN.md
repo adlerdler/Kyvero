@@ -5,14 +5,18 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React_18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite_6-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Hono](https://img.shields.io/badge/Hono_API-E36002?style=for-the-badge&logo=hono&logoColor=white)](https://hono.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
 [![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)](https://cloudinary.com/)
+[![D3.js](https://img.shields.io/badge/D3.js-F9A03C?style=for-the-badge&logo=d3.js&logoColor=white)](https://d3js.org/)
+[![DeepL](https://img.shields.io/badge/DeepL_API-0F2B46?style=for-the-badge&logo=deepl&logoColor=white)](https://www.deepl.com/)
+[![LLM Context](https://img.shields.io/badge/LLM--Ready-llm.txt_v2.1-8A2BE2?style=for-the-badge&logo=openai&logoColor=white)](https://kyvero.app/llm.txt)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 </div>
-
----
 
 ## 🎨 视觉与架构美学 (Design & Architecture Overview)
 
@@ -22,13 +26,24 @@ Kyvero 融合了**硬核新粗野主义 (Neo-Brutalist)** 视觉美学与现代�
 graph TD
     A[访客与管理员] -->|访问主站 / 切换多语言| B(React 18 + Vite SPA前端)
     B -->|状态管理与动态路由| C[AppContext 状态引擎]
-    C -->|实时访问与60分钟防刷| D[Supabase PostgreSQL 数据库]
+    C -->|实时访问与代理 API| D[Hono Edge API 与 Supabase 数据库]
     C -->|头像与作品集托管| E[Cloudinary CDN 媒体库]
     D -->|D3.js 半年度热力图| F[访客统计分析后台]
     D -->|GeoHash 节点监控| G[全球访客雷达与地理分布]
+    D -->|动态上下文引擎| H[动态 llm.txt 与 Sitemap 生成器]
 ```
 
----
+## 🛠️ 技术栈清单 (Technology Stack)
+
+| 领域 | 核心技术 | 功能说明 |
+| :--- | :--- | :--- |
+| **前端框架** | React 18, Vite 6, TypeScript | 高性能单页应用主架构 |
+| **视觉与动画** | Tailwind CSS v4, Motion (Framer Motion) | 新粗野主义设计风格与交互微动画 |
+| **后端 API** | Hono Framework, Node.js, Express | 边缘兼容的轻量服务端架构与适配器 |
+| **数据库与存储** | Supabase (PostgreSQL), Cloudinary CDN | 云原生持久化数据库与媒体资源 CDN 托管 |
+| **数据可视化** | D3.js, React Simple Maps | 181 天贡献热力图与全球交互式流量雷达 |
+| **国际化与 AI** | I18N 字典对象 + DeepL 翻译 API | 5 种语言原生字典与服务端自动翻译 |
+| **SEO 与 AI 上下文** | SSR Meta 注入, 动态 `llm.txt` v2.1 | 智能体抓取优化与多语言站点地图 |
 
 ## 🌟 核心功能特性 (Core Features)
 
@@ -36,11 +51,10 @@ graph TD
 | :--- | :--- | :--- |
 | **🎨 现代粗野美学主页** | 包含精美的个人卡片、技能掌握矩阵、开源项目展示与社交矩阵。 | 高对比度视觉、无缝动画切换 (`Motion`)。 |
 | **📊 半年度访问热力图** | 类似 GitHub 风格的 181 天（26周）贡献热力矩阵。 | 基于 `D3.js` 精准渲染，实时对接云端 `analytics` 表。 |
-| **🌍 全球访客动态雷达** | 交互式地理分布雷达与国内/海外节点流量监控。 | 实时统计、节点延迟探测、多维数据过滤。 |
+| **🌍 全球访客动态雷达** | 交互式地理分布雷达与全球节点流量监控。 | 实时统计、节点延迟探测、GeoHash 映射。 |
 | **🔒 沉浸式管理控制台** | 独立的密码保护通道 (`/admin`)，支持全站数据增删改查。 | 密码修改、系统品牌定制、数据备份与一键重置。 |
 | **🌐 五国多语言引擎** | 内置 5 种专业技术语言支持，具备完整的字典对象管理。 | 简体中文、繁體中文、English、日本語、한국어。 |
-
----
+| **🤖 智能体上下文与 SEO** | 动态 `llm.txt` 生成器与服务端 Open Graph 标签注入。 | 实时汇总数据库内容供 AI 与搜索引擎索引。 |
 
 ## 🌐 多语言支持 (Multilingual Engine)
 
@@ -52,7 +66,13 @@ graph TD
 * **🇯🇵 日本語 (`ja`)** —— 日文本地化适配
 * **🇰🇷 한국어 (`ko`)** —— 韩文本地化适配
 
----
+## 🤖 动态 LLM 上下文与 SEO 引擎
+
+Kyvero 原生支持大语言模型爬虫与搜索引擎抓取：
+
+* **动态 `/llm.txt`**：根据 Supabase 数据库实时提取项目、技能与配置信息，生成 Markdown 格式的 AI 上下文。
+* **Open Graph SSR**：服务端自动注入包含 HTTPS 绝对路径的 `og:title`、`og:description` 与 `og:image`。
+* **多语言站点地图**：自动生成带 `xhtml:link` 跨语言关联的 `sitemap.xml`。
 
 ## 📦 快速开始与本地开发 (Getting Started)
 
@@ -72,6 +92,7 @@ VITE_CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 VITE_CLOUDINARY_UPLOAD_PRESET=your_cloudinary_preset
 VITE_CLOUDINARY_API_KEY=your_cloudinary_api_key
 VITE_CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+DEEPL_API_KEY=your_deepl_api_key
 ```
 
 ### 3. 初始化 Supabase 数据库
@@ -85,10 +106,9 @@ npm run dev
 ```
 项目将在 `http://localhost:3000` 实时运行。
 
----
-
 ## 🚢 生产构建与部署 (Deployment)
 
+### 1. 核心部署命令
 ```bash
 # 执行生产打包（Vite + Esbuild 服务端打包）
 npm run build
@@ -97,7 +117,11 @@ npm run build
 npm start
 ```
 
----
+### 2. 平台适配器
+- **Cloudflare Workers**：入口文件 `src/api/adapters/cloudflare.ts`
+- **Vercel**：入口文件 `src/api/adapters/vercel.ts`
+- **AWS Lambda**：入口文件 `src/api/adapters/aws-lambda.ts`
+- **Node.js (Express)**：标准入口文件 `server.ts`
 
 ## 📄 许可证与开源声明 (License & Attribution)
 

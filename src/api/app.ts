@@ -175,6 +175,294 @@ app.post('/analytics', async (c) => {
   }
 });
 
+app.post('/system-config', async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const body = await c.req.json();
+    const { error } = await supabase.from('system_config').upsert(body);
+    if (error) throw error;
+    return c.json({ success: true });
+  } catch (error: any) {
+    return c.json({ success: false, error }, 401);
+  }
+});
+
+app.post('/social-links', async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const body = await c.req.json();
+    const { error } = await supabase.from('social_links').upsert(body);
+    if (error) throw error;
+    return c.json({ success: true });
+  } catch (error: any) {
+    return c.json({ success: false, error }, 401);
+  }
+});
+
+app.delete('/social-links/:id', async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const id = c.req.param('id');
+    const { error } = await supabase.from('social_links').delete().eq('id', id);
+    if (error) throw error;
+    return c.json({ success: true });
+  } catch (error: any) {
+    return c.json({ success: false, error }, 401);
+  }
+});
+
+app.post('/footer-links', async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const body = await c.req.json();
+    const { error } = await supabase.from('footer_links').upsert(body);
+    if (error) throw error;
+    return c.json({ success: true });
+  } catch (error: any) {
+    return c.json({ success: false, error }, 401);
+  }
+});
+
+app.delete('/footer-links/:id', async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const id = c.req.param('id');
+    const { error } = await supabase.from('footer_links').delete().eq('id', id);
+    if (error) throw error;
+    return c.json({ success: true });
+  } catch (error: any) {
+    return c.json({ success: false, error }, 401);
+  }
+});
+
+app.post('/media-items', async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const body = await c.req.json();
+    const { error } = await supabase.from('media_items').upsert(body);
+    if (error) throw error;
+    return c.json({ success: true });
+  } catch (error: any) {
+    return c.json({ success: false, error }, 401);
+  }
+});
+
+app.delete('/media-items/:id', async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const id = c.req.param('id');
+    const { error } = await supabase.from('media_items').delete().eq('id', id);
+    if (error) throw error;
+    return c.json({ success: true });
+  } catch (error: any) {
+    return c.json({ success: false, error }, 401);
+  }
+});
+
+app.post('/users', async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const body = await c.req.json();
+    const { error } = await supabase.from('users').upsert(body);
+    if (error) throw error;
+    return c.json({ success: true });
+  } catch (error: any) {
+    return c.json({ success: false, error }, 401);
+  }
+});
+
+app.get('/metadata', async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const projectId = c.req.query('project');
+    const lang = c.req.query('lang') || 'zh-CN';
+    
+    let title = 'Kyvero Portfolio';
+    let description = 'Modern Neo-Brutalist Portfolio & Analytics Console';
+    let ogImage = '';
+
+    const { data: config } = await supabase.from('system_config').select('*').limit(1).single();
+    if (config) {
+      title = config.site_title || title;
+      description = config.site_description || description;
+      ogImage = config.logo_url || '';
+    }
+
+    if (projectId) {
+      const { data: project } = await supabase.from('projects').select('*').eq('id', projectId).single();
+      if (project) {
+        title = `${project.title} | ${title}`;
+        description = project.description || description;
+        if (project.image_url) ogImage = project.image_url;
+      }
+    }
+
+    return c.json({
+      title,
+      description,
+      ogImage,
+      lang
+    });
+  } catch (error) {
+    return c.json({ title: 'Kyvero Portfolio', description: '' });
+  }
+});
+
+const getBaseUrl = (c: any) => {
+  const reqProto = c.req.header('x-forwarded-proto');
+  const reqHost = c.req.header('x-forwarded-host') || c.req.header('host');
+  if (reqHost) {
+    const proto = (reqProto ? reqProto.split(',')[0].trim() : '') || 'https';
+    return `${proto}://${reqHost}`;
+  }
+  return new URL(c.req.url).origin;
+};
+
+app.get('/sitemap.xml', async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const baseUrl = getBaseUrl(c);
+    const languages = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko'];
+
+    // Fetch projects to include in sitemap
+    const { data: projects } = await supabase
+      .from('projects')
+      .select('id, updated_at')
+      .order('updated_at', { ascending: false });
+
+    const now = new Date().toISOString();
+    
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">`;
+
+    // Homepages for each language
+    languages.forEach(lang => {
+      xml += `
+  <url>
+    <loc>${baseUrl}/?lang=${lang}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+    ${languages.map(alt => `<xhtml:link rel="alternate" hreflang="${alt.toLowerCase()}" href="${baseUrl}/?lang=${alt}"/>`).join('\n    ')}
+  </url>`;
+    });
+
+    // Projects for each language
+    if (projects) {
+      projects.forEach((project: any) => {
+        const lastMod = project.updated_at ? new Date(project.updated_at).toISOString() : now;
+        languages.forEach(lang => {
+          xml += `
+  <url>
+    <loc>${baseUrl}/?project=${project.id}&amp;lang=${lang}</loc>
+    <lastmod>${lastMod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    ${languages.map(alt => `<xhtml:link rel="alternate" hreflang="${alt.toLowerCase()}" href="${baseUrl}/?project=${project.id}&amp;lang=${alt}"/>`).join('\n    ')}
+  </url>`;
+        });
+      });
+    }
+
+    xml += `
+</urlset>`;
+
+    return c.text(xml, 200, {
+      'Content-Type': 'application/xml',
+      'Cache-Control': 'public, max-age=3600'
+    });
+  } catch (error: any) {
+    return c.text('Error generating sitemap', 500);
+  }
+});
+
+app.get('/robots.txt', async (c) => {
+  const baseUrl = getBaseUrl(c);
+  const content = `User-agent: *
+Allow: /
+Sitemap: ${baseUrl}/sitemap.xml`;
+  return c.text(content);
+});
+
+app.get('/llm.txt', async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const baseUrl = getBaseUrl(c);
+
+    // Fetch dynamic data for LLM context
+    const [
+      { data: projects },
+      { data: skills },
+      { data: config }
+    ] = await Promise.all([
+      supabase.from('projects').select('title, description, category, tags'),
+      supabase.from('tech_skills').select('name, category'),
+      supabase.from('system_config').select('site_title, site_description').limit(1).single()
+    ]);
+
+    const siteTitle = config?.site_title || 'Kyvero Portfolio';
+    const siteDesc = config?.site_description || 'Modern Neo-Brutalist Portfolio Console';
+
+    let content = `# ${siteTitle}
+
+> ${siteDesc}
+
+## Project Overview
+Kyvero is a high-performance portfolio system featuring a Neo-Brutalist design aesthetic. It integrates real-time visitor analytics, global traffic radar, and a comprehensive administration console.
+
+## Architecture
+- **Frontend**: React 18, Vite, Tailwind CSS, Motion (Animations), D3.js (Data Visualization).
+- **Backend**: Hono (Edge-ready Framework) running on Node.js.
+- **Database**: Supabase (PostgreSQL) for persistent data and analytics.
+- **Media**: Cloudinary CDN for optimized asset hosting.
+- **I18N**: Professional dictionary-based support for zh-CN, zh-TW, en, ja, ko.
+
+## Content Summary
+- **Total Projects**: ${projects?.length || 0}
+- **Tech Stack Entities**: ${skills?.length || 0}
+- **Categories**: ${Array.from(new Set(projects?.map(p => p.category) || [])).join(', ')}
+
+## Detailed Projects
+${projects?.slice(0, 10).map(p => `- **${p.title}** (${p.category}): ${p.description}`).join('\n') || 'No projects listed.'}
+${(projects?.length || 0) > 10 ? `\n...and ${(projects?.length || 0) - 10} more projects.` : ''}
+
+## Technical Skills
+${skills?.slice(0, 15).map(s => `- ${s.name} (${s.category})`).join('\n') || 'No skills listed.'}
+${(skills?.length || 0) > 15 ? `\n...and ${(skills?.length || 0) - 15} more technical entities.` : ''}
+
+## Key Features
+- **Analytics Radar**: Real-time visitor tracking with GeoHash mapping and node latency monitoring.
+- **Heatmap Matrix**: D3-powered 181-day visitor activity visualization.
+- **Admin Console**: Secure /admin dashboard for full site management (CRUD).
+- **Auto-Translation**: Integrated DeepL server-side translation for content.
+- **SEO Ready**: Dynamic sitemap.xml and robots.txt generation.
+
+## Navigation
+- [Homepage](${baseUrl}/) - Main portfolio and analytics dashboard.
+- [Admin Panel](${baseUrl}/admin) - Management console (Password protected).
+- [Sitemap](${baseUrl}/sitemap.xml) - Search engine indexing data.
+
+## License
+Custom MIT License with Mandatory Attribution Clause.
+
+---
+Generated dynamically for LLM context. Version: 2.1.0 (Dynamic)`;
+
+    return c.text(content, 200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'public, max-age=3600' // Shorter cache for dynamic content
+    });
+  } catch (error: any) {
+    // Fallback to static description if DB fails
+    return c.text('Error generating dynamic LLM context. Please try again later.', 500);
+  }
+});
+
+app.get('/llms.txt', async (c) => {
+  return c.redirect('/llm.txt');
+});
+
 app.post('/translate', async (c) => {
   try {
     const { sourceText } = await c.req.json();

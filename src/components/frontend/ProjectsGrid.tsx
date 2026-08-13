@@ -8,8 +8,6 @@ export const ProjectsGrid: React.FC = () => {
   const {
     data,
     t,
-    activeCategory,
-    setActiveCategory,
     setSelectedProject,
     getProjectTitle,
     getProjectSummary,
@@ -25,19 +23,7 @@ export const ProjectsGrid: React.FC = () => {
       setIsLoading(false);
     }, 400);
     return () => clearTimeout(timer);
-  }, [activeCategory]);
-
-  // Extract all categories dynamically with multi-language mapping
-  const categories: string[] = ['ALL', 'FEATURED', ...Array.from(new Set(projects.map(p => getProjectCategory(p)) as string[]))];
-
-  // Filter projects based on category
-  const filteredProjects = projects.filter(p => {
-    return activeCategory === 'ALL'
-      ? true
-      : activeCategory === 'FEATURED'
-      ? p.featured
-      : getProjectCategory(p) === activeCategory;
-  });
+  }, []);
 
   return (
     <motion.section
@@ -61,47 +47,15 @@ export const ProjectsGrid: React.FC = () => {
               <h3 className="text-2xl md:text-3xl font-black text-black dark:text-white tracking-tight flex items-center gap-3 font-mono">
                 <span>{t.projectsSection}</span>
                 <motion.span
-                  key={filteredProjects.length}
+                  key={projects.length}
                   initial={{ scale: 0.8 }}
                   animate={{ scale: 1 }}
                   className="bg-amber-400 dark:bg-amber-500 text-black text-xs font-black px-2.5 py-0.5 rounded-full border-2 border-black"
                 >
-                  {filteredProjects.length}
+                  {projects.length}
                 </motion.span>
               </h3>
             </div>
-          </div>
-
-          {/* Category Filter Pills */}
-          <div className="flex flex-wrap items-center gap-2">
-            {categories.map(cat => {
-              const isSelected = activeCategory === cat;
-              
-              const getCategoryLabel = (cat: string) => {
-                if (cat === 'ALL') return t.allProjects;
-                if (cat === 'FEATURED') return t.featuredProjects;
-                return cat;
-              };
-              
-              const label = getCategoryLabel(cat);
-
-              return (
-                <motion.button
-                  key={cat}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-black border-2 transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-black dark:bg-amber-400 text-yellow-300 dark:text-black border-black dark:border-zinc-100 shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] scale-105'
-                      : 'bg-zinc-100 dark:bg-slate-800 text-zinc-700 dark:text-zinc-300 border-black dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-slate-700 shadow-[1px_1px_0px_0px_#000]'
-                  }`}
-                >
-                  {cat === 'ALL' && <Layers className="w-3 h-3 stroke-[2.5]" />}
-                  {cat === 'FEATURED' && <Star className="w-3 h-3 stroke-[2.5] fill-yellow-400 dark:fill-black text-yellow-400 dark:text-black" />}
-                  <span>{label}</span>
-                </motion.button>
-              );
-            })}
           </div>
         </div>
 
@@ -132,7 +86,7 @@ export const ProjectsGrid: React.FC = () => {
                 </div>
               ))}
             </motion.div>
-          ) : filteredProjects.length === 0 ? (
+          ) : projects.length === 0 ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0, scale: 0.95 }}
@@ -150,7 +104,7 @@ export const ProjectsGrid: React.FC = () => {
               layout
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
             >
-              {filteredProjects.map((project: Project, index: number) => (
+              {projects.map((project: Project, index: number) => (
                 <motion.div
                   key={project.id}
                   layout

@@ -67,8 +67,44 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    app.get('*', async (req, res) => {
+      try {
+        const indexPath = path.join(distPath, 'index.html');
+        let html = fs.readFileSync(indexPath, 'utf-8');
+        
+        // Call Hono to get metadata via internal loopback
+        const host = req.headers['x-forwarded-host'] || req.headers.host;
+        const rawProto = req.headers['x-forwarded-proto'];
+        const proto = (typeof rawProto === 'string' ? rawProto.split(',')[0] : (req.protocol || 'https')).trim();
+        const protocol = (proto === 'http' || proto === 'https') ? proto : 'https';
+
+        const project = req.query.project as string;
+        const lang = req.query.lang as string;
+        
+        const metadataUrl = `http://127.0.0.1:${PORT}/api/metadata?${project ? `project=${project}&` : ''}${lang ? `lang=${lang}` : ''}`;
+        const metaRes = await fetch(metadataUrl);
+        const meta = await metaRes.json() as any;
+
+        if (meta) {
+          const fullUrl = `${protocol}://${host}${req.url}`;
+          const metaTags = `
+            <title>${meta.title}</title>
+            <meta name="description" content="${meta.description}" />
+            <meta property="og:title" content="${meta.title}" />
+            <meta property="og:description" content="${meta.description}" />
+            ${meta.ogImage ? `<meta property="og:image" content="${meta.ogImage}" />` : ''}
+            <meta property="og:url" content="${fullUrl}" />
+            <meta property="og:type" content="website" />
+            <link rel="canonical" href="${fullUrl}" />
+          `;
+          html = html.replace('<title>A1L · 极客作品集 &amp; 个人主页</title>', metaTags);
+          html = html.replace('<html lang="en">', `<html lang="${meta.lang || 'zh-CN'}">`);
+        }
+
+        res.send(html);
+      } catch (err) {
+        res.sendFile(path.join(distPath, 'index.html'));
+      }
     });
   }
 

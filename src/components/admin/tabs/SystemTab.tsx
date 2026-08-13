@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { 
-  Globe, Shield, Plus, Save, Trash2, Edit2, Database, Loader2, RefreshCw, Download,
+  Globe, Shield, Plus, Save, Trash2, Edit2,
   Github, Twitter, Mail, Tv, ExternalLink, Image as ImageIcon
 } from 'lucide-react';
-import { getSupabaseCredentials, saveCustomSupabaseConfig, testSupabaseConnection, isSupabaseConfigured } from '../../../lib/supabase';
-import { fetchAllSiteDataFromSupabase } from '../../../services/supabaseService';
 import { MediaLibrarySelector } from '../MediaLibrarySelector';
 import { FooterLink, SystemConfig } from '../../../types';
 
@@ -21,27 +19,6 @@ export const SystemTab: React.FC = () => {
   } = useApp();
 
   const dbt = t;
-
-  // Supabase Configuration Form States
-  const [supabaseUrlInput, setSupabaseUrlInput] = useState(() => getSupabaseCredentials().url);
-  const [supabaseKeyInput, setSupabaseKeyInput] = useState(() => getSupabaseCredentials().key);
-  const [testingSupabase, setTestingSupabase] = useState(false);
-  const [supabaseStatusMsg, setSupabaseStatusMsg] = useState<string | null>(null);
-
-  const handleTestAndSaveSupabase = async () => {
-    setTestingSupabase(true);
-    setSupabaseStatusMsg(null);
-    saveCustomSupabaseConfig(supabaseUrlInput, supabaseKeyInput);
-    const result = await testSupabaseConnection();
-    setTestingSupabase(false);
-    if (result.connected) {
-      setSupabaseStatusMsg('🟢 ' + result.message);
-      showToast('Supabase 数据库连接成功！数据同步引擎已接通。');
-    } else {
-      setSupabaseStatusMsg('🔴 ' + result.message);
-      showToast('Supabase 连接测试未通过，请检查凭据');
-    }
-  };
 
   const [systemForm, setSystemForm] = useState<SystemConfig>(() => {
     return data.systemConfig || {
@@ -401,91 +378,6 @@ export const SystemTab: React.FC = () => {
               暂无页脚独立外链 / No links available
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Supabase 云端数据库配置 */}
-      <div className="bg-amber-100 dark:bg-slate-800 border-3 border-black dark:border-zinc-500 p-5 rounded-2xl shadow-[4px_4px_0px_0px_#000] dark:shadow-[4px_4px_0px_0px_#38BDF8] flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Database className="w-5 h-5 text-amber-600 dark:text-amber-400 stroke-[2.5]" />
-            <h4 className="font-black text-base text-black dark:text-white uppercase tracking-wider">
-              Supabase 云端数据库配置
-            </h4>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`px-2.5 py-1 rounded-full text-xs font-black border-2 border-black shadow-[1px_1px_0px_0px_#000] ${
-              isSupabaseConfigured()
-                ? 'bg-emerald-400 text-black'
-                : 'bg-rose-400 text-white'
-            }`}>
-              {isSupabaseConfigured() ? '🟢 已配置 Supabase 实例' : '🔴 未配置 / 纯本地模式'}
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[11px] font-black text-black dark:text-zinc-200 uppercase mb-1">
-              Supabase Project URL
-            </label>
-            <input
-              type="text"
-              value={supabaseUrlInput}
-              onChange={e => setSupabaseUrlInput(e.target.value)}
-              placeholder="https://your-project.supabase.co"
-              className="w-full bg-white dark:bg-slate-900 border-2 border-black p-2.5 rounded-xl text-xs font-mono font-bold text-black dark:text-white shadow-[2px_2px_0px_0px_#000]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-black text-black dark:text-zinc-200 uppercase mb-1">
-              Supabase Key
-            </label>
-            <input
-              type="password"
-              value={supabaseKeyInput}
-              onChange={e => setSupabaseKeyInput(e.target.value)}
-              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..."
-              className="w-full bg-white dark:bg-slate-900 border-2 border-black p-2.5 rounded-xl text-xs font-mono font-bold text-black dark:text-white shadow-[2px_2px_0px_0px_#000]"
-            />
-          </div>
-        </div>
-
-        {supabaseStatusMsg && (
-          <div className="p-3 bg-white dark:bg-slate-900 border-2 border-black rounded-xl text-xs font-bold text-black dark:text-white font-mono shadow-[2px_2px_0px_0px_#000]">
-            {supabaseStatusMsg}
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-3 pt-1">
-          <button
-            type="button"
-            onClick={handleTestAndSaveSupabase}
-            disabled={testingSupabase}
-            className="bg-black text-yellow-300 dark:bg-amber-400 dark:text-black border-2 border-black dark:border-zinc-200 px-5 py-2.5 rounded-xl text-xs font-black shadow-[3px_3px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] hover:bg-zinc-800 dark:hover:bg-amber-300 flex items-center gap-2 active:scale-95 transition-transform disabled:opacity-50"
-          >
-            {testingSupabase ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4 stroke-[2.5]" />}
-            <span>保存并测试 Supabase 连接</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={async () => {
-              showToast('正在从 Supabase 云端拉取最新数据...');
-              const cloudData = await fetchAllSiteDataFromSupabase();
-              if (cloudData) {
-                showToast('成功拉取 Supabase 云端全站数据！刷新即可同步显示。');
-                setTimeout(() => window.location.reload(), 1000);
-              } else {
-                showToast('从 Supabase 拉取数据失败，请确认数据库配置与网络连接。');
-              }
-            }}
-            className="bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black dark:border-zinc-500 px-4 py-2.5 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] hover:bg-zinc-100 dark:hover:bg-slate-800 flex items-center gap-2 active:scale-95 transition-transform"
-          >
-            <Download className="w-4 h-4 stroke-[2.5]" />
-            <span>从 Supabase 重新拉取云端全站数据</span>
-          </button>
         </div>
       </div>
 

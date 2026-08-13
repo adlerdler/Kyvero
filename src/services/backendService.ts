@@ -1,4 +1,4 @@
-import { SiteData, Profile, Project, TechSkill, Experience, VisitorLogEntry } from '../types';
+import { SiteData, Profile, Project, TechSkill, Experience, VisitorLogEntry, SystemConfig, SocialLink, FooterLink, MediaItem, User } from '../types';
 
 const API_BASE = '/api';
 
@@ -45,6 +45,20 @@ export async function fetchAllSiteDataFromBackend(): Promise<Partial<SiteData> |
       };
     }
     
+    if (data.systemConfigs && data.systemConfigs.length > 0) {
+      const raw = data.systemConfigs[0];
+      siteData.systemConfig = {
+        id: raw.id,
+        siteTitle: raw.site_title,
+        logoUrl: raw.logo_url,
+        iconUrl: raw.icon_url,
+        copyrightText: raw.copyright_text,
+        copyrightSubtext: raw.copyright_subtext,
+        version: raw.version,
+        buildChannel: raw.build_channel
+      };
+    }
+
     if (data.projects) {
       siteData.projects = data.projects.map((p: any) => ({
         id: p.id,
@@ -87,7 +101,50 @@ export async function fetchAllSiteDataFromBackend(): Promise<Partial<SiteData> |
       }));
     }
 
-    // Add more mappings if needed (social links, footer, etc.)
+    if (data.socialLinks) {
+      siteData.socialLinks = data.socialLinks.map((l: any) => ({
+        id: l.id,
+        name: l.name,
+        url: l.url,
+        type: l.type,
+        iconName: l.icon_name || 'Github',
+        badgeText: l.badge_text,
+        isPrimary: Boolean(l.is_primary)
+      }));
+    }
+
+    if (data.footerLinks) {
+      siteData.footerLinks = data.footerLinks.map((l: any) => ({
+        id: l.id,
+        name: l.name,
+        url: l.url,
+        iconType: l.icon_type
+      }));
+    }
+
+    if (data.mediaItems) {
+      siteData.mediaItems = data.mediaItems.map((m: any) => ({
+        id: m.id,
+        name: m.name || '',
+        url: m.url,
+        thumbnailUrl: m.thumbnail_url,
+        type: m.type,
+        category: m.category,
+        fileName: m.file_name,
+        createdAt: m.created_at,
+        size: m.size
+      }));
+    }
+
+    if (data.users) {
+      siteData.users = data.users.map((u: any) => ({
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        password: u.password,
+        role: u.role
+      }));
+    }
     
     return siteData;
   } catch (error) {
@@ -114,6 +171,25 @@ export async function syncProfileToBackend(profile: Profile) {
   };
   
   const res = await fetch(`${API_BASE}/profile`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+export async function syncSystemConfigToBackend(config: SystemConfig) {
+  const payload = {
+    id: config.id || 'default',
+    site_title: config.siteTitle,
+    logo_url: config.logoUrl,
+    icon_url: config.iconUrl,
+    copyright_text: config.copyrightText,
+    copyright_subtext: config.copyrightSubtext,
+    version: config.version,
+    build_channel: config.buildChannel
+  };
+  const res = await fetch(`${API_BASE}/system-config`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -190,6 +266,90 @@ export async function syncTechSkillToBackend(skill: TechSkill) {
 
 export async function deleteTechSkillFromBackend(id: string) {
   const res = await fetch(`${API_BASE}/tech-skills/${id}`, { method: 'DELETE' });
+  return res.json();
+}
+
+export async function syncSocialLinkToBackend(link: SocialLink) {
+  const payload = {
+    id: link.id,
+    name: link.name,
+    url: link.url,
+    type: link.type,
+    icon_name: link.iconName,
+    badge_text: link.badgeText,
+    is_primary: link.isPrimary
+  };
+  const res = await fetch(`${API_BASE}/social-links`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+export async function deleteSocialLinkFromBackend(id: string) {
+  const res = await fetch(`${API_BASE}/social-links/${id}`, { method: 'DELETE' });
+  return res.json();
+}
+
+export async function syncFooterLinkToBackend(link: FooterLink) {
+  const payload = {
+    id: link.id,
+    name: link.name,
+    url: link.url,
+    icon_type: link.iconType
+  };
+  const res = await fetch(`${API_BASE}/footer-links`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+export async function deleteFooterLinkFromBackend(id: string) {
+  const res = await fetch(`${API_BASE}/footer-links/${id}`, { method: 'DELETE' });
+  return res.json();
+}
+
+export async function syncMediaItemToBackend(item: MediaItem) {
+  const payload = {
+    id: item.id,
+    name: item.name,
+    url: item.url,
+    thumbnail_url: item.thumbnailUrl,
+    type: item.type,
+    category: item.category,
+    file_name: item.fileName,
+    created_at: item.createdAt,
+    size: item.size
+  };
+  const res = await fetch(`${API_BASE}/media-items`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  return res.json();
+}
+
+export async function deleteMediaItemFromBackend(id: string) {
+  const res = await fetch(`${API_BASE}/media-items/${id}`, { method: 'DELETE' });
+  return res.json();
+}
+
+export async function syncUserToBackend(user: User) {
+  const payload = {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    password: user.password,
+    role: user.role
+  };
+  const res = await fetch(`${API_BASE}/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
   return res.json();
 }
 

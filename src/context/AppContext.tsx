@@ -5,25 +5,22 @@ import { DEFAULT_LANGUAGE, TRANSLATIONS, TranslationDictionary } from '../i18n/l
 import {
   fetchAllSiteDataFromBackend,
   syncProfileToBackend,
+  syncSystemConfigToBackend,
   syncProjectToBackend,
   deleteProjectFromBackend,
   syncExperienceToBackend,
   deleteExperienceFromBackend,
   syncTechSkillToBackend,
   deleteTechSkillFromBackend,
+  syncSocialLinkToBackend,
+  deleteSocialLinkFromBackend,
+  syncFooterLinkToBackend,
+  deleteFooterLinkFromBackend,
+  syncMediaItemToBackend,
+  deleteMediaItemFromBackend,
+  syncUserToBackend,
   syncVisitorLogToBackend
 } from '../services/backendService';
-import {
-  fetchAllSiteDataFromSupabase,
-  syncSystemConfigToSupabase,
-  syncSocialLinkToSupabase,
-  deleteSocialLinkFromSupabase,
-  syncFooterLinkToSupabase,
-  deleteFooterLinkFromSupabase,
-  syncMediaItemToSupabase,
-  deleteMediaItemFromSupabase,
-  syncUserToSupabase
-} from '../services/supabaseService';
 
 interface AppContextType {
   data: SiteData;
@@ -34,7 +31,6 @@ interface AppContextType {
   isAdmin: boolean;
   isAdminModalOpen: boolean;
   selectedProject: Project | null;
-  activeCategory: string;
   searchQuery: string;
   toastMessage: string | null;
   currentUser: User | null;
@@ -50,7 +46,6 @@ interface AppContextType {
   logoutAdmin: () => void;
   updatePassword: (currentPassword: string, newPassword: string) => { success: boolean; messageKey?: keyof TranslationDictionary };
   setSelectedProject: (project: Project | null) => void;
-  setActiveCategory: (cat: string) => void;
   setSearchQuery: (query: string) => void;
   showToast: (msg: string) => void;
   
@@ -133,12 +128,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           users: dbData.users && dbData.users.length > 0 ? dbData.users : prev.users,
           totalVisits: dbData.totalVisits !== undefined ? dbData.totalVisits : prev.totalVisits
         }));
-      } else {
-        // Fallback to Supabase directly if backend fails
-        const legacyData = await fetchAllSiteDataFromSupabase();
-        if (legacyData) {
-          setData(prev => ({ ...prev, ...legacyData }));
-        }
       }
     }
     loadBackendData();
@@ -273,7 +262,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string>('ALL');
+
+  // Handle URL parameters for deep linking
+  useEffect(() => {
+    if (data.projects && data.projects.length > 0) {
+      const params = new URLSearchParams(window.location.search);
+      const projectId = params.get('project');
+      if (projectId) {
+        const found = data.projects.find(p => p.id === projectId);
+        if (found) {
+          setSelectedProject(found);
+        }
+      }
+    }
+  }, [data.projects]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -451,11 +453,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       systemConfig: newConfig
     }));
-    const res = await syncSystemConfigToSupabase(newConfig);
+    const res = await syncSystemConfigToBackend(newConfig);
     if (res.success) {
       showToast(`${getI18nStr('toastSystemConfigUpdated')} (${getI18nStr('toastSyncSuccess')})`);
     } else {
-      showToast(`${getI18nStr('toastSystemConfigUpdated')} (${getI18nStr('toastLocalSuccess')}, Supabase: ${res.error || getI18nStr('notConfigured')})`);
+      showToast(`${getI18nStr('toastSystemConfigUpdated')} (${getI18nStr('toastLocalSuccess')})`);
     }
   };
 
@@ -519,8 +521,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       socialLinks: [...(prev.socialLinks || []), newLink]
     }));
-    const res = await syncSocialLinkToSupabase(newLink);
-    showToast(res.success ? `${getI18nStr('toastLinkAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastLinkAdded')} (${getI18nStr('toastLocalSuccess')}, Supabase: ${res.error || getI18nStr('notConfigured')})`);
+    const res = await syncSocialLinkToBackend(newLink);
+    showToast(res.success ? `${getI18nStr('toastLinkAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastLinkAdded')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
   const updateSocialLink = async (updatedLink: SocialLink) => {
@@ -528,8 +530,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       socialLinks: (prev.socialLinks || []).map(l => (l.id === updatedLink.id ? updatedLink : l))
     }));
-    const res = await syncSocialLinkToSupabase(updatedLink);
-    showToast(res.success ? `${getI18nStr('toastLinkUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastLinkUpdated')} (${getI18nStr('toastLocalSuccess')}, Supabase: ${res.error || getI18nStr('notConfigured')})`);
+    const res = await syncSocialLinkToBackend(updatedLink);
+    showToast(res.success ? `${getI18nStr('toastLinkUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastLinkUpdated')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
   const deleteSocialLink = async (id: string) => {
@@ -537,7 +539,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       socialLinks: (prev.socialLinks || []).filter(l => l.id !== id)
     }));
-    await deleteSocialLinkFromSupabase(id);
+    await deleteSocialLinkFromBackend(id);
     showToast(getI18nStr('toastLinkDeleted'));
   };
 
@@ -550,7 +552,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       footerLinks: [...(prev.footerLinks || []), newLink]
     }));
-    const res = await syncFooterLinkToSupabase(newLink);
+    const res = await syncFooterLinkToBackend(newLink);
     showToast(res.success ? `${getI18nStr('toastFooterLinkAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastFooterLinkAdded')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
@@ -559,7 +561,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       footerLinks: (prev.footerLinks || []).map(l => (l.id === updatedLink.id ? updatedLink : l))
     }));
-    const res = await syncFooterLinkToSupabase(updatedLink);
+    const res = await syncFooterLinkToBackend(updatedLink);
     showToast(res.success ? `${getI18nStr('toastFooterLinkUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastFooterLinkUpdated')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
@@ -568,7 +570,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       footerLinks: (prev.footerLinks || []).filter(l => l.id !== id)
     }));
-    await deleteFooterLinkFromSupabase(id);
+    await deleteFooterLinkFromBackend(id);
     showToast(getI18nStr('toastFooterLinkDeleted'));
   };
 
@@ -613,7 +615,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       mediaItems: [newItem, ...(prev.mediaItems || [])]
     }));
-    const res = await syncMediaItemToSupabase(newItem);
+    const res = await syncMediaItemToBackend(newItem);
     showToast(res.success ? `${getI18nStr('toastMediaAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastMediaAdded')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
@@ -622,7 +624,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       mediaItems: (prev.mediaItems || []).filter(item => item.id !== id)
     }));
-    await deleteMediaItemFromSupabase(id);
+    await deleteMediaItemFromBackend(id);
     showToast(getI18nStr('toastMediaDeleted'));
   };
 
@@ -754,7 +756,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isAdmin,
         isAdminModalOpen,
         selectedProject,
-        activeCategory,
         searchQuery,
         toastMessage,
         currentUser,
@@ -768,7 +769,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         logoutAdmin,
         updatePassword,
         setSelectedProject,
-        setActiveCategory,
         setSearchQuery,
         showToast,
         updateProfile,

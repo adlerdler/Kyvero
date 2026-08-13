@@ -4,7 +4,7 @@ export interface SocialLink {
   id: string;
   name: string;
   url: string;
-  type: 'github' | 'blog' | 'twitter' | 'bilibili' | 'email' | 'other';
+  type: string;
   iconName: string;
   badgeText?: string;
   isPrimary?: boolean;
@@ -29,7 +29,7 @@ export interface TechSkill {
   id: string;
   name: string;
   level: number; // 0 - 100 percentage
-  category: 'frontend' | 'backend' | 'ai' | 'architecture';
+  category: string;
   color: string; // e.g. cyan, amber, emerald, violet, rose, sky
   iconName?: string;
   experience?: string;
@@ -61,10 +61,11 @@ export interface FooterLink {
   id: string;
   name: string;
   url: string;
-  iconType: 'github' | 'twitter' | 'email' | 'blog' | 'bilibili' | 'other';
+  iconType: string;
 }
 
 export interface SystemConfig {
+  id?: string;
   siteTitle: string;
   logoUrl: string;
   iconUrl: string;
@@ -78,6 +79,10 @@ export interface MediaItem {
   id: string;
   name: string;
   url: string;
+  thumbnailUrl?: string;
+  type?: string;
+  category?: string;
+  fileName?: string;
   createdAt: string;
   size?: string;
 }

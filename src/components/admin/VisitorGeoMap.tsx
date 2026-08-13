@@ -38,7 +38,6 @@ function getCountryFromIpHash(ipHash: string): CountryGeoData {
 
 export const VisitorGeoMap: React.FC = () => {
   const { data, language, t } = useApp();
-  const [activeScope, setActiveScope] = useState<'all' | 'domestic' | 'overseas'>('all');
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     countryName: string;
@@ -71,25 +70,14 @@ export const VisitorGeoMap: React.FC = () => {
     return map;
   }, [analyticsList]);
 
-  // Filter stats based on active scope
-  const filteredCountryStats = useMemo(() => {
-    const result = new Map<string, { country: CountryGeoData; visits: number; ipHashes: Set<string> }>();
-    countryStatsMap.forEach((val, key) => {
-      if (activeScope === 'domestic' && val.country.iso2 !== 'CN') return;
-      if (activeScope === 'overseas' && val.country.iso2 === 'CN') return;
-      result.set(key, val);
-    });
-    return result;
-  }, [countryStatsMap, activeScope]);
-
   // Maximum visits for dynamic color scale calculation
   const maxVisits = useMemo(() => {
     let max = 0;
-    filteredCountryStats.forEach(v => {
+    countryStatsMap.forEach(v => {
       if (v.visits > max) max = v.visits;
     });
     return max || 1;
-  }, [filteredCountryStats]);
+  }, [countryStatsMap]);
 
   // Get color for a country based on visits
   const getCountryColor = (visits: number): string => {
@@ -112,42 +100,6 @@ export const VisitorGeoMap: React.FC = () => {
               GLOBAL_RADAR_MAP // CHOROPLETH TRAFFIC HEATMAP
             </span>
           </div>
-
-          {/* Scope Controls */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center bg-white dark:bg-slate-800 border-2 border-black dark:border-zinc-200 rounded-xl p-0.5 shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8]">
-              <button
-                onClick={() => setActiveScope('all')}
-                className={`px-3 py-1 text-xs font-black rounded-lg transition-colors ${
-                  activeScope === 'all'
-                    ? 'bg-black text-cyan-300'
-                    : 'text-black dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-slate-700'
-                }`}
-              >
-                {t.allRegions}
-              </button>
-              <button
-                onClick={() => setActiveScope('domestic')}
-                className={`px-3 py-1 text-xs font-black rounded-lg transition-colors ${
-                  activeScope === 'domestic'
-                    ? 'bg-black text-cyan-300'
-                    : 'text-black dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-slate-700'
-                }`}
-              >
-                {t.domesticRegions}
-              </button>
-              <button
-                onClick={() => setActiveScope('overseas')}
-                className={`px-3 py-1 text-xs font-black rounded-lg transition-colors ${
-                  activeScope === 'overseas'
-                    ? 'bg-black text-cyan-300'
-                    : 'text-black dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-slate-700'
-                }`}
-              >
-                {t.overseasNodes}
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Large Prominent Map Viewport */}
@@ -166,7 +118,7 @@ export const VisitorGeoMap: React.FC = () => {
                   geographies.map(geo => {
                     const rawId = String(geo.id);
                     const numericId = rawId.padStart(3, '0');
-                    const stat = filteredCountryStats.get(numericId) || filteredCountryStats.get(rawId);
+                    const stat = countryStatsMap.get(numericId) || countryStatsMap.get(rawId);
                     const visits = stat ? stat.visits : 0;
                     const isVisited = visits > 0;
 
