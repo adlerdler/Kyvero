@@ -1,0 +1,7 @@
+name = "kyvero"
+main = "src/api/adapters/cloudflare.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[site]
+bucket = "./dist"

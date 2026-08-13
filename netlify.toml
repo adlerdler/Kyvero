@@ -1,0 +1,17 @@
+[build]
+  command = "bun run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# 将 /api/* 代理转发到 Netlify Functions
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# SPA 单页应用路由兜底
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
