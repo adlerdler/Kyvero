@@ -42,6 +42,10 @@ const getSupabase = (env: any) => {
 
 // --- ROUTES ---
 
+app.get('/health', (c) => {
+  return c.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.get('/site-data', async (c) => {
   try {
     const supabase = getSupabase(c.env);
