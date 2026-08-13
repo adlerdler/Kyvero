@@ -381,4 +381,5 @@ export const ko: TranslationDictionary = {
   supabaseMediaItemSyncError: 'Supabase 미디어 항목 동기화 오류:',
   supabaseAnalyticsSyncError: 'Supabase 분석 동기화 오류:',
   supabaseUserSyncError: 'Supabase 사용자 동기화 오류:',
+  poweredByKyvero: 'Kyvero 오픈 소스 시스템으로 구동됨',
 };

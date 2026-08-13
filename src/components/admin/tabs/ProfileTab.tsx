@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { ImageIcon, Save } from 'lucide-react';
 import { LanguageCode, Profile } from '../../../types';
 import { MediaLibrarySelector } from '../MediaLibrarySelector';
+import { translateTextWithDeepL } from '../../../utils/deepl';
 
 export const ProfileTab: React.FC = () => {
   const { data, t, language, updateProfile } = useApp();
@@ -16,9 +17,73 @@ export const ProfileTab: React.FC = () => {
     setProfileForm(data.profile);
   }, [data.profile]);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile(profileForm);
+
+    const processFieldTranslations = async (currentVal: string, existingObj: any) => {
+      if (!currentVal) return existingObj || {};
+      try {
+        const translated = await translateTextWithDeepL(currentVal);
+        const baseObj = typeof existingObj === 'object' && existingObj !== null ? existingObj : {};
+        return {
+          'zh-CN': baseObj['zh-CN'] || (language === 'zh-CN' ? currentVal : translated['zh-CN'] || currentVal),
+          'zh-TW': baseObj['zh-TW'] || (language === 'zh-TW' ? currentVal : translated['zh-TW'] || ''),
+          'en': baseObj['en'] || (language === 'en' ? currentVal : translated['en'] || ''),
+          'ja': baseObj['ja'] || (language === 'ja' ? currentVal : translated['ja'] || ''),
+          'ko': baseObj['ko'] || (language === 'ko' ? currentVal : translated['ko'] || ''),
+        };
+      } catch (err) {
+        console.warn('Auto translation failed:', err);
+        return { ...existingObj, [language]: currentVal };
+      }
+    };
+
+    const processBioTranslations = async (currentLines: string[], existingBio: any) => {
+      const sourceText = currentLines.join('\n');
+      if (!sourceText) return existingBio || {};
+
+      try {
+        const translated = await translateTextWithDeepL(sourceText);
+        const baseBio = typeof existingBio === 'object' && !Array.isArray(existingBio) ? existingBio : {};
+        
+        const splitLines = (text: string) => text.split('\n').filter(Boolean);
+
+        return {
+          'zh-CN': baseBio['zh-CN'] || (language === 'zh-CN' ? currentLines : splitLines(translated['zh-CN'] || sourceText)),
+          'zh-TW': baseBio['zh-TW'] || (language === 'zh-TW' ? currentLines : splitLines(translated['zh-TW'] || '')),
+          'en': baseBio['en'] || (language === 'en' ? currentLines : splitLines(translated['en'] || '')),
+          'ja': baseBio['ja'] || (language === 'ja' ? currentLines : splitLines(translated['ja'] || '')),
+          'ko': baseBio['ko'] || (language === 'ko' ? currentLines : splitLines(translated['ko'] || '')),
+        };
+      } catch (err) {
+        console.warn('Auto translation failed for bio:', err);
+        return { ...existingBio, [language]: currentLines };
+      }
+    };
+
+    const currentTitle = typeof profileForm.title === 'string' ? profileForm.title : (profileForm.title as Record<LanguageCode, string>)[language] || '';
+    const currentSubtitle = typeof profileForm.subtitle === 'string' ? profileForm.subtitle : (profileForm.subtitle as Record<LanguageCode, string>)[language] || '';
+    const currentSpeech = typeof profileForm.speechBubbleText === 'string' ? profileForm.speechBubbleText : (profileForm.speechBubbleText as Record<LanguageCode, string>)[language] || '';
+    const currentLocation = typeof profileForm.location === 'string' ? profileForm.location : (profileForm.location as Record<LanguageCode, string>)[language] || '';
+    const currentStatus = typeof profileForm.statusText === 'string' ? profileForm.statusText : (profileForm.statusText as Record<LanguageCode, string>)[language] || '';
+    const currentBioLines = Array.isArray(profileForm.bioLines) ? profileForm.bioLines : (profileForm.bioLines as Record<LanguageCode, string[]>)[language] || [];
+
+    const finalTitle = await processFieldTranslations(currentTitle, profileForm.title);
+    const finalSubtitle = await processFieldTranslations(currentSubtitle, profileForm.subtitle);
+    const finalSpeech = await processFieldTranslations(currentSpeech, profileForm.speechBubbleText);
+    const finalLocation = await processFieldTranslations(currentLocation, profileForm.location);
+    const finalStatus = await processFieldTranslations(currentStatus, profileForm.statusText);
+    const finalBio = await processBioTranslations(currentBioLines, profileForm.bioLines);
+
+    updateProfile({
+      ...profileForm,
+      title: finalTitle,
+      subtitle: finalSubtitle,
+      speechBubbleText: finalSpeech,
+      location: finalLocation,
+      statusText: finalStatus,
+      bioLines: finalBio
+    });
   };
 
   return (

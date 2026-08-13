@@ -381,4 +381,5 @@ export const en: TranslationDictionary = {
   supabaseMediaItemSyncError: 'Supabase media item sync error:',
   supabaseAnalyticsSyncError: 'Supabase analytics sync error:',
   supabaseUserSyncError: 'Supabase user sync error:',
+  poweredByKyvero: 'Powered by Kyvero Open Source',
 };

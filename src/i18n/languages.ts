@@ -400,6 +400,7 @@ export interface TranslationDictionary {
   supabaseMediaItemSyncError: string;
   supabaseAnalyticsSyncError: string;
   supabaseUserSyncError: string;
+  poweredByKyvero: string;
 }
 
 export const DEFAULT_LANGUAGE: LanguageCode = 'zh-CN';

@@ -238,6 +238,14 @@ function MainLayout() {
 
                     {/* Right Action Zone */}
                     <div className="flex flex-wrap items-center gap-3 md:gap-4 self-end md:self-auto">
+                      <a 
+                        href="https://github.com/adlerdler/Kyvero" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-emerald-600 dark:text-emerald-400 opacity-60 hover:opacity-100 transition-opacity italic"
+                      >
+                        {t.poweredByKyvero}
+                      </a>
                       <VisitorCounter />
                     </div>
 

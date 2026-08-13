@@ -3,22 +3,25 @@ import { SiteData, LanguageCode, Project, Profile, SocialLink, FooterLink, TechS
 import { INITIAL_SITE_DATA } from '../data/initialData';
 import { DEFAULT_LANGUAGE, TRANSLATIONS, TranslationDictionary } from '../i18n/languages';
 import {
+  fetchAllSiteDataFromBackend,
+  syncProfileToBackend,
+  syncProjectToBackend,
+  deleteProjectFromBackend,
+  syncExperienceToBackend,
+  deleteExperienceFromBackend,
+  syncTechSkillToBackend,
+  deleteTechSkillFromBackend,
+  syncVisitorLogToBackend
+} from '../services/backendService';
+import {
   fetchAllSiteDataFromSupabase,
-  syncProfileToSupabase,
   syncSystemConfigToSupabase,
-  syncProjectToSupabase,
-  deleteProjectFromSupabase,
-  syncTechSkillToSupabase,
-  deleteTechSkillFromSupabase,
-  syncExperienceToSupabase,
-  deleteExperienceFromSupabase,
   syncSocialLinkToSupabase,
   deleteSocialLinkFromSupabase,
   syncFooterLinkToSupabase,
   deleteFooterLinkFromSupabase,
   syncMediaItemToSupabase,
   deleteMediaItemFromSupabase,
-  syncVisitorLogToSupabase,
   syncUserToSupabase
 } from '../services/supabaseService';
 
@@ -110,10 +113,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return INITIAL_SITE_DATA;
   });
 
-  // Fetch initial site data from Supabase if configured
+  // Fetch initial site data from Backend API (Hono)
   useEffect(() => {
-    async function loadSupabaseData() {
-      const dbData = await fetchAllSiteDataFromSupabase();
+    async function loadBackendData() {
+      // Try backend first
+      const dbData = await fetchAllSiteDataFromBackend();
       if (dbData) {
         setData(prev => ({
           ...prev,
@@ -129,9 +133,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           users: dbData.users && dbData.users.length > 0 ? dbData.users : prev.users,
           totalVisits: dbData.totalVisits !== undefined ? dbData.totalVisits : prev.totalVisits
         }));
+      } else {
+        // Fallback to Supabase directly if backend fails
+        const legacyData = await fetchAllSiteDataFromSupabase();
+        if (legacyData) {
+          setData(prev => ({ ...prev, ...legacyData }));
+        }
       }
     }
-    loadSupabaseData();
+    loadBackendData();
   }, []);
 
   // Save site data to localStorage
@@ -308,11 +318,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         totalVisits: (prev.totalVisits || 0) + 1
       }));
 
-      // Sync to Supabase database
+      // Sync to Backend (Hono)
       try {
-        await syncVisitorLogToSupabase(newLog);
+        await syncVisitorLogToBackend(newLog);
       } catch (err) {
-        console.error('Failed to sync visitor log to Supabase:', err);
+        console.error('Failed to sync visitor log to Backend:', err);
       }
     };
 
@@ -428,11 +438,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       profile: newProfile
     }));
-    const res = await syncProfileToSupabase(newProfile);
+    const res = await syncProfileToBackend(newProfile);
     if (res.success) {
       showToast(`${getI18nStr('toastProfileUpdated')} (${getI18nStr('toastSyncSuccess')})`);
     } else {
-      showToast(`${getI18nStr('toastProfileUpdated')} (${getI18nStr('toastLocalSuccess')}, Supabase: ${res.error || getI18nStr('notConfigured')})`);
+      showToast(`${getI18nStr('toastProfileUpdated')} (${getI18nStr('toastLocalSuccess')})`);
     }
   };
 
@@ -478,8 +488,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       projects: [newProj, ...prev.projects]
     }));
-    const res = await syncProjectToSupabase(newProj);
-    showToast(res.success ? `${getI18nStr('toastProjectAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastProjectAdded')} (${getI18nStr('toastLocalSuccess')}, Supabase: ${res.error || getI18nStr('notConfigured')})`);
+    const res = await syncProjectToBackend(newProj);
+    showToast(res.success ? `${getI18nStr('toastProjectAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastProjectAdded')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
   const updateProject = async (updatedProject: Project) => {
@@ -487,8 +497,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       projects: prev.projects.map(p => (p.id === updatedProject.id ? updatedProject : p))
     }));
-    const res = await syncProjectToSupabase(updatedProject);
-    showToast(res.success ? `${getI18nStr('toastProjectUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastProjectUpdated')} (${getI18nStr('toastLocalSuccess')}, Supabase: ${res.error || getI18nStr('notConfigured')})`);
+    const res = await syncProjectToBackend(updatedProject);
+    showToast(res.success ? `${getI18nStr('toastProjectUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastProjectUpdated')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
   const deleteProject = async (id: string) => {
@@ -496,7 +506,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       projects: prev.projects.filter(p => p.id !== id)
     }));
-    await deleteProjectFromSupabase(id);
+    await deleteProjectFromBackend(id);
     showToast(getI18nStr('toastProjectDeleted'));
   };
 
@@ -571,7 +581,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       techSkills: [...(prev.techSkills || []), newSkill]
     }));
-    const res = await syncTechSkillToSupabase(newSkill);
+    const res = await syncTechSkillToBackend(newSkill);
     showToast(res.success ? `${getI18nStr('toastSkillAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastSkillAdded')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
@@ -580,7 +590,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       techSkills: (prev.techSkills || []).map(s => (s.id === updatedSkill.id ? updatedSkill : s))
     }));
-    const res = await syncTechSkillToSupabase(updatedSkill);
+    const res = await syncTechSkillToBackend(updatedSkill);
     showToast(res.success ? `${getI18nStr('toastSkillUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastSkillUpdated')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
@@ -589,7 +599,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       techSkills: (prev.techSkills || []).filter(s => s.id !== id)
     }));
-    await deleteTechSkillFromSupabase(id);
+    await deleteTechSkillFromBackend(id);
     showToast(getI18nStr('toastSkillDeleted'));
   };
 
@@ -625,7 +635,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       experiences: [newExp, ...(prev.experiences || [])]
     }));
-    const res = await syncExperienceToSupabase(newExp);
+    const res = await syncExperienceToBackend(newExp);
     showToast(res.success ? `${getI18nStr('toastExperienceAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastExperienceAdded')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
@@ -634,7 +644,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       experiences: (prev.experiences || []).map(e => (e.id === updatedExp.id ? updatedExp : e))
     }));
-    const res = await syncExperienceToSupabase(updatedExp);
+    const res = await syncExperienceToBackend(updatedExp);
     showToast(res.success ? `${getI18nStr('toastExperienceUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastExperienceUpdated')} (${getI18nStr('toastLocalSuccess')})`);
   };
 
@@ -643,7 +653,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...prev,
       experiences: (prev.experiences || []).filter(e => e.id !== id)
     }));
-    deleteExperienceFromSupabase(id);
+    deleteExperienceFromBackend(id);
     showToast(t.toastExperienceDeleted);
   };
 

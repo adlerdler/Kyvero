@@ -381,4 +381,5 @@ export const ja: TranslationDictionary = {
   supabaseMediaItemSyncError: 'Supabaseメディアアイテム同期エラー:',
   supabaseAnalyticsSyncError: 'Supabaseアナリティクス同期エラー:',
   supabaseUserSyncError: 'Supabaseユーザー同期エラー:',
+  poweredByKyvero: 'Kyvero オープンソースシステムによって駆動',
 };

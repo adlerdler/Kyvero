@@ -381,4 +381,5 @@ export const zhTW: TranslationDictionary = {
   supabaseMediaItemSyncError: 'Supabase 媒體項同步錯誤:',
   supabaseAnalyticsSyncError: 'Supabase 數據分析同步錯誤:',
   supabaseUserSyncError: 'Supabase 用戶同步錯誤:',
+  poweredByKyvero: '由 Kyvero 開源系統驅動',
 };

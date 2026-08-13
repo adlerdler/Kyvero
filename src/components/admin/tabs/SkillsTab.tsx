@@ -3,6 +3,7 @@ import { useApp } from '../../../context/AppContext';
 import { AnimatePresence, motion } from 'motion/react';
 import { Cpu, Plus, Sparkles, X, Check, Palette, Edit2, Trash2, ShieldCheck } from 'lucide-react';
 import { TechSkill, LanguageCode } from '../../../types';
+import { translateTextWithDeepL } from '../../../utils/deepl';
 
 const ANIME_COLOR_SWATCHES = [
   { name: '赛博青蓝', hex: '#38BDF8' },
@@ -47,19 +48,45 @@ export const SkillsTab: React.FC = () => {
     }
   });
 
-  const handleSkillSubmit = (e: React.FormEvent) => {
+  const handleSkillSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!skillForm.name.trim()) return;
+
+    let finalTagline = skillForm.tagline;
+    const currentTaglineText = typeof skillForm.tagline === 'object' && skillForm.tagline !== null
+      ? (skillForm.tagline as Record<LanguageCode, string>)[language]
+      : String(skillForm.tagline || '');
+
+    if (currentTaglineText && currentTaglineText.trim() !== '') {
+      try {
+        const translated = await translateTextWithDeepL(currentTaglineText);
+        const baseTagline = typeof skillForm.tagline === 'object' && skillForm.tagline !== null
+          ? (skillForm.tagline as Record<LanguageCode, string>)
+          : { 'zh-CN': currentTaglineText, 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' };
+
+        finalTagline = {
+          'zh-CN': baseTagline['zh-CN'] || (language === 'zh-CN' ? currentTaglineText : translated['zh-CN'] || currentTaglineText),
+          'zh-TW': baseTagline['zh-TW'] || (language === 'zh-TW' ? currentTaglineText : translated['zh-TW'] || ''),
+          'en': baseTagline['en'] || (language === 'en' ? currentTaglineText : translated['en'] || ''),
+          'ja': baseTagline['ja'] || (language === 'ja' ? currentTaglineText : translated['ja'] || ''),
+          'ko': baseTagline['ko'] || (language === 'ko' ? currentTaglineText : translated['ko'] || ''),
+        };
+      } catch (err) {
+        console.warn('Auto translation failed for skill tagline:', err);
+      }
+    }
 
     if (editingSkill) {
       updateTechSkill({
         ...editingSkill,
         ...skillForm,
+        tagline: finalTagline,
         level: Number(skillForm.level)
       });
     } else {
       addTechSkill({
         ...skillForm,
+        tagline: finalTagline,
         level: Number(skillForm.level)
       });
     }

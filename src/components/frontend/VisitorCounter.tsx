@@ -9,7 +9,7 @@ export const VisitorCounter: React.FC = () => {
   const totalVisits = data.totalVisits || (data.analytics || []).length;
 
   const formatPixelNum = (num: number) => {
-    return num.toLocaleString().padStart(6, '0');
+    return num.toLocaleString();
   };
 
   return (
@@ -18,7 +18,6 @@ export const VisitorCounter: React.FC = () => {
       title={t.visitorTotal}
     >
       <Eye className="w-3.5 h-3.5 text-emerald-400 stroke-[2.5]" />
-      <span className="text-[10px] text-zinc-400 uppercase font-sans hidden sm:inline">{t.visitorTotal}:</span>
       <span className="font-extrabold tracking-widest">{formatPixelNum(totalVisits)}</span>
     </div>
   );

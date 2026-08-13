@@ -10,95 +10,119 @@
 [![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)](https://cloudinary.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
+[中文文档](./README_CN.md)
+
 </div>
 
 ---
 
-## 🎨 视觉与架构美学 (Design & Architecture Overview)
+## 🎨 Design & Architecture Overview
 
-Kyvero 融合了**硬核新粗野主义 (Neo-Brutalist)** 视觉美学与现代高并发全栈架构，拥有极具辨识度的粗边框、高对比度阴影、响应式布局以及精密的数据统计后台。
+Kyvero blends **Neo-Brutalist** visual aesthetics with a modern high-concurrency full-stack architecture. It features distinctive bold borders, high-contrast shadows, responsive layouts, and a sophisticated data analytics backend.
 
 ```mermaid
 graph TD
-    A[访客与管理员] -->|访问主站 / 切换多语言| B(React 18 + Vite SPA前端)
-    B -->|状态管理与动态路由| C[AppContext 状态引擎]
-    C -->|实时访问与60分钟防刷| D[Supabase PostgreSQL 数据库]
-    C -->|头像与作品集托管| E[Cloudinary CDN 媒体库]
-    D -->|D3.js 半年度热力图| F[访客统计分析后台]
-    D -->|GeoHash 节点监控| G[全球访客雷达与地理分布]
+    A[Visitors & Admin] -->|Visit / Switch Language| B(React 18 + Vite SPA Frontend)
+    B -->|State Management & Dynamic Routing| C[AppContext State Engine]
+    C -->|Real-time Access & Rate Limiting| D[Supabase PostgreSQL Database]
+    C -->|Asset & Portfolio Hosting| E[Cloudinary CDN Media Library]
+    D -->|D3.js Semi-annual Heatmap| F[Visitor Analytics Console]
+    D -->|GeoHash Node Monitoring| G[Global Visitor Radar & Geo-distribution]
 ```
 
 ---
 
-## 🌟 核心功能特性 (Core Features)
+## 🌟 Core Features
 
-| 模块名称 | 功能简介 | 技术亮点 |
+| Module | Description | Technical Highlights |
 | :--- | :--- | :--- |
-| **🎨 现代粗野美学主页** | 包含精美的个人卡片、技能掌握矩阵、开源项目展示与社交矩阵。 | 高对比度视觉、无缝动画切换 (`Motion`)。 |
-| **📊 半年度访问热力图** | 类似 GitHub 风格的 181 天（26周）贡献热力矩阵。 | 基于 `D3.js` 精准渲染，实时对接云端 `analytics` 表。 |
-| **🌍 全球访客动态雷达** | 交互式地理分布雷达与国内/海外节点流量监控。 | 实时统计、节点延迟探测、多维数据过滤。 |
-| **🔒 沉浸式管理控制台** | 独立的密码保护通道 (`/admin`)，支持全站数据增删改查。 | 密码修改、系统品牌定制、数据备份与一键重置。 |
-| **🌐 五国多语言引擎** | 内置 5 种专业技术语言支持，具备完整的字典对象管理。 | 简体中文、繁體中文、English、日本語、한국어。 |
+| **🎨 Neo-Brutalist UI** | Elegant personal cards, skill matrices, open-source project displays, and social grids. | High-contrast visuals, seamless animations (`Motion`). |
+| **📊 Analytics Heatmap** | GitHub-style heatmap showing 181 days (26 weeks) of visitor activity. | D3.js rendering, real-time sync with `analytics` table. |
+| **🌍 Visitor Radar** | Interactive geo-distribution radar and domestic/overseas traffic monitoring. | Real-time stats, node latency detection, multi-dimensional filtering. |
+| **🔒 Admin Console** | Password-protected dashboard (`/admin`) for full-site CRUD operations. | Brand customization, data backup, and one-click reset. |
+| **🌐 Multilingual Engine** | Built-in support for 5 professional languages with dictionary management. | Simplified Chinese, Traditional Chinese, English, Japanese, Korean. |
 
 ---
 
-## 🌐 多语言支持 (Multilingual Engine)
+## 🌐 Multilingual Support
 
-系统内置了企业级的 I18N 国际化字典对象管理机制，不依赖粗糙的实时翻译，确保技术名词的专业性与准确性：
+The system features an enterprise-grade I18N dictionary management mechanism, ensuring professional accuracy of technical terms:
 
-* **🇨🇳 简体中文 (`zh-CN`)** —— 默认系统语言
-* **🇭🇰 繁體中文 (`zh-TW`)** —— 港台与海外繁中用户
-* **🇺🇸 English (`en`)** —— 国际化标准英语
-* **🇯🇵 日本語 (`ja`)** —— 日文本地化适配
-* **🇰🇷 한국어 (`ko`)** —— 韩文本地化适配
+* **🇨🇳 Simplified Chinese (`zh-CN`)** —— Default System Language
+* **🇭🇰 Traditional Chinese (`zh-TW`)** —— For HK, TW, and overseas users
+* **🇺🇸 English (`en`)** —— International Standard
+* **🇯🇵 Japanese (`ja`)** —— Localized for Japan
+* **🇰🇷 Korean (`ko`)** —— Localized for Korea
 
 ---
 
-## 📦 快速开始与本地开发 (Getting Started)
+## 📦 Getting Started
 
-### 1. 克隆项目与安装依赖
+### 1. Clone & Install
 ```bash
 git clone https://github.com/your-username/kyvero-portfolio-console.git
 cd kyvero-portfolio-console
 npm install
 ```
 
-### 2. 配置环境变量
-在根目录下创建 `.env` 文件（可参考 `.env.example`）：
+### 2. Environment Variables
+Create a `.env` file in the root directory (refer to `.env.example`):
 ```env
 VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_KEY=your_supabase_anon_key
 VITE_CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
 VITE_CLOUDINARY_UPLOAD_PRESET=your_cloudinary_preset
 VITE_CLOUDINARY_API_KEY=your_cloudinary_api_key
 VITE_CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+DEEPL_API_KEY=your_deepl_api_key
 ```
 
-### 3. 初始化 Supabase 数据库
-1. 登录 [Supabase 控制台](https://supabase.com/) 创建项目。
-2. 打开 **SQL Editor**，将根目录下的 `supabase_schema.sql` 脚本完整复制并执行。
-3. 数据库将自动创建 `profiles`, `projects`, `tech_skills`, `experiences`, `social_links`, `media_items`, `analytics` 等核心数据表。
+### 3. Initialize Supabase
+1. Create a project on [Supabase Console](https://supabase.com/).
+2. Open **SQL Editor**, copy and run the `supabase_schema.sql` script.
+3. Tables such as `profiles`, `projects`, `tech_skills`, `experiences`, `social_links`, `media_items`, and `analytics` will be created automatically.
 
-### 4. 启动本地开发服务器
+### 4. Run Development Server
 ```bash
 npm run dev
 ```
-项目将在 `http://localhost:3000` 实时运行。
+The app will be available at `http://localhost:3000`.
 
 ---
 
-## 🚢 生产构建与部署 (Deployment)
+## 🚢 Deployment Guide
 
+Kyvero's backend is built with the **Hono** framework, supporting various Serverless and Edge platforms.
+
+### 1. Core Configuration
+Ensure the following variables are configured in your deployment platform:
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_KEY` (Supabase **service_role** key is recommended for backend operations)
+- `DEEPL_API_KEY` (Server-side secret)
+
+### 2. Platform Adapters
+- **Cloudflare Workers**: Entry point at `src/api/adapters/cloudflare.ts`.
+- **Vercel**: Entry point at `src/api/adapters/vercel.ts`.
+- **AWS Lambda**: Entry point at `src/api/adapters/aws-lambda.ts`.
+- **Node.js (Express)**: Standard entry point at `server.ts`.
+
+### 3. Production Build
 ```bash
-# 执行生产打包（Vite + Esbuild 服务端打包）
+# Build both frontend and backend
 npm run build
 
-# 启动生产服务
+# Start production server
 npm start
 ```
 
 ---
 
-## 📄 许可证 (License)
+## 📄 License & Attribution
+
+This project is licensed under a **Customized MIT License**:
+* **Allowed**: Commercial use, modification, distribution, private use.
+* **Mandatory**: Any website or application using this software **must** include a visible link back to the original GitHub repository in its user interface (e.g., in the footer).
+
+See the [LICENSE](./LICENSE) file for the full text.
 
 MIT License © 2026 Kyvero Portfolio Console.

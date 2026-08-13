@@ -11,8 +11,9 @@ const disableViteAutoReload = (): Plugin => ({
     if (id.includes('@vite/client') || id.includes('vite/dist/client')) {
       return {
         code: code
-          .replace(/location\.reload\(\)/g, 'console.log("[Vite HMR] Auto-reload suppressed")')
-          .replace(/window\.location\.reload\(\)/g, 'console.log("[Vite HMR] Auto-reload suppressed")'),
+          .replace(/location\.reload\(\)/g, '(() => {})()')
+          .replace(/window\.location\.reload\(\)/g, '(() => {})()')
+          .replace(/new WebSocket/g, '(() => ({ addEventListener: () => {}, send: () => {}, close: () => {} }))'),
         map: null,
       };
     }

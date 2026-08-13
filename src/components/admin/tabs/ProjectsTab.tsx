@@ -5,6 +5,7 @@ import { X, ImageIcon, Download, Plus, Edit2, Trash2 } from 'lucide-react';
 import { Project, LanguageCode } from '../../../types';
 import { MediaLibrarySelector } from '../MediaLibrarySelector';
 import { exportPortfolioToPDF } from '../../../utils/exportPdf';
+import { translateTextWithDeepL } from '../../../utils/deepl';
 
 const PROJECT_1_SVG = '';
 const PROJECT_2_SVG = '';
@@ -73,36 +74,50 @@ export const ProjectsTab: React.FC = () => {
     });
   };
 
-  const handleProjectSubmit = (e: React.FormEvent) => {
+  const handleProjectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const processFieldTranslations = async (currentVal: string, existingObj: any) => {
+      const sourceText = currentVal;
+      if (!sourceText) return existingObj || {};
+
+      try {
+        const translated = await translateTextWithDeepL(sourceText);
+        const baseObj = typeof existingObj === 'object' && existingObj !== null ? existingObj : {};
+        
+        return {
+          'zh-CN': baseObj['zh-CN'] || (language === 'zh-CN' ? sourceText : translated['zh-CN'] || sourceText),
+          'zh-TW': baseObj['zh-TW'] || (language === 'zh-TW' ? sourceText : translated['zh-TW'] || ''),
+          'en': baseObj['en'] || (language === 'en' ? sourceText : translated['en'] || ''),
+          'ja': baseObj['ja'] || (language === 'ja' ? sourceText : translated['ja'] || ''),
+          'ko': baseObj['ko'] || (language === 'ko' ? sourceText : translated['ko'] || ''),
+        };
+      } catch (err) {
+        console.warn('Auto translation failed:', err);
+        return { ...existingObj, [language]: sourceText };
+      }
+    };
+
+    const finalTitle = await processFieldTranslations(projectForm.title, editingProject?.title);
+    const finalSummary = await processFieldTranslations(projectForm.summary, editingProject?.summary);
+    const finalDescription = await processFieldTranslations(projectForm.description, editingProject?.description);
+    const finalCategory = await processFieldTranslations(projectForm.category, editingProject?.category);
+
     const tagArray = projectForm.tags
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
 
     if (editingProject) {
-      const newTitle = typeof editingProject.title === 'object' && editingProject.title !== null
-        ? { ...editingProject.title, [language]: projectForm.title }
-        : projectForm.title;
-      const newSummary = typeof editingProject.summary === 'object' && editingProject.summary !== null
-        ? { ...editingProject.summary, [language]: projectForm.summary }
-        : projectForm.summary;
-      const newDesc = typeof editingProject.description === 'object' && editingProject.description !== null
-        ? { ...editingProject.description, [language]: projectForm.description }
-        : projectForm.description;
-      const newCat = typeof editingProject.category === 'object' && editingProject.category !== null
-        ? { ...editingProject.category, [language]: projectForm.category }
-        : projectForm.category;
-
       updateProject({
         ...editingProject,
-        title: newTitle,
-        summary: newSummary,
-        description: newDesc,
+        title: finalTitle,
+        summary: finalSummary,
+        description: finalDescription,
         imageUrl: projectForm.imageUrl,
         demoUrl: projectForm.demoUrl,
         githubUrl: projectForm.githubUrl,
-        category: newCat,
+        category: finalCategory,
         tags: tagArray,
         featured: projectForm.featured
       });
@@ -110,13 +125,13 @@ export const ProjectsTab: React.FC = () => {
       setIsAddingProject(false);
     } else {
       addProject({
-        title: projectForm.title,
-        summary: projectForm.summary,
-        description: projectForm.description,
+        title: finalTitle,
+        summary: finalSummary,
+        description: finalDescription,
         imageUrl: projectForm.imageUrl || PROJECT_1_SVG,
         demoUrl: projectForm.demoUrl,
         githubUrl: projectForm.githubUrl,
-        category: projectForm.category,
+        category: finalCategory,
         tags: tagArray,
         featured: projectForm.featured
       });
