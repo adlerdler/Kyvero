@@ -159,6 +159,17 @@ export async function fetchAllSiteDataFromBackend(): Promise<Partial<SiteData> |
         role: u.role
       }));
     }
+
+    if (data.analytics && Array.isArray(data.analytics)) {
+      siteData.analytics = data.analytics.map((a: any) => ({
+        id: a.id,
+        timestamp: a.timestamp,
+        path: a.path || '/',
+        userAgent: a.user_agent || a.userAgent || '',
+        referrer: a.referrer || '',
+        ipHash: a.ip_hash || a.ipHash || ''
+      }));
+    }
     
     return siteData;
   } catch (error) {
@@ -221,8 +232,10 @@ export async function syncProjectToBackend(project: Project) {
     image_url: project.imageUrl,
     demo_url: project.demoUrl,
     github_url: project.githubUrl,
+    blog_url: project.blogUrl,
     tags: project.tags,
-    featured: project.featured
+    featured: project.featured,
+    created_at: project.createdAt || new Date().toISOString()
   };
   const res = await fetch(`${API_BASE}/projects`, {
     method: 'POST',
@@ -368,10 +381,20 @@ export async function syncUserToBackend(user: User) {
 }
 
 export async function syncVisitorLogToBackend(log: VisitorLogEntry) {
+  const payload = {
+    id: log.id,
+    timestamp: log.timestamp,
+    path: log.path,
+    user_agent: log.userAgent,
+    userAgent: log.userAgent,
+    referrer: log.referrer,
+    ip_hash: log.ipHash,
+    ipHash: log.ipHash
+  };
   const res = await fetch(`${API_BASE}/analytics`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(log)
+    body: JSON.stringify(payload)
   });
   return res.json();
 }

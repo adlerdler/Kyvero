@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { motion } from 'motion/react';
-import { ImageIcon, Save } from 'lucide-react';
+import { ImageIcon, Save, Loader2 } from 'lucide-react';
 import { LanguageCode, Profile } from '../../../types';
 import { MediaLibrarySelector } from '../MediaLibrarySelector';
 import { translateTextWithDeepL } from '../../../utils/deepl';
@@ -12,6 +12,7 @@ export const ProfileTab: React.FC = () => {
 
   const [profileForm, setProfileForm] = useState<Profile>(data.profile);
   const [showMediaSelector, setShowMediaSelector] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setProfileForm(data.profile);
@@ -19,90 +20,149 @@ export const ProfileTab: React.FC = () => {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSaving(true);
 
-    const processFieldTranslations = async (currentVal: string, existingObj: any) => {
-      if (!currentVal) return existingObj || {};
-      try {
-        const translated = await translateTextWithDeepL(currentVal);
-        const baseObj = typeof existingObj === 'object' && existingObj !== null ? existingObj : {};
-        return {
-          'zh-CN': baseObj['zh-CN'] || (language === 'zh-CN' ? currentVal : translated['zh-CN'] || currentVal),
-          'zh-TW': baseObj['zh-TW'] || (language === 'zh-TW' ? currentVal : translated['zh-TW'] || ''),
-          'en': baseObj['en'] || (language === 'en' ? currentVal : translated['en'] || ''),
-          'ja': baseObj['ja'] || (language === 'ja' ? currentVal : translated['ja'] || ''),
-          'ko': baseObj['ko'] || (language === 'ko' ? currentVal : translated['ko'] || ''),
-        };
-      } catch (err) {
-        console.warn('Auto translation failed:', err);
-        return { ...existingObj, [language]: currentVal };
-      }
-    };
+    try {
+      const processFieldTranslations = async (currentVal: string, originalObj: any, currentObj: any) => {
+        const sourceText = currentVal?.trim() || '';
+        if (!sourceText) return { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' };
 
-    const processBioTranslations = async (currentLines: string[], existingBio: any) => {
-      const sourceText = currentLines.join('\n');
-      if (!sourceText) return existingBio || {};
+        const originalMap: Record<string, string> =
+          typeof originalObj === 'object' && originalObj !== null ? originalObj : {};
+        const currentMap: Record<string, string> =
+          typeof currentObj === 'object' && currentObj !== null ? currentObj : {};
 
-      try {
-        const translated = await translateTextWithDeepL(sourceText);
-        const baseBio = typeof existingBio === 'object' && !Array.isArray(existingBio) ? existingBio : {};
-        
-        const splitLines = (text: string) => text.split('\n').filter(Boolean);
+        const targetLangs: LanguageCode[] = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko'];
 
-        return {
-          'zh-CN': baseBio['zh-CN'] || (language === 'zh-CN' ? currentLines : splitLines(translated['zh-CN'] || sourceText)),
-          'zh-TW': baseBio['zh-TW'] || (language === 'zh-TW' ? currentLines : splitLines(translated['zh-TW'] || '')),
-          'en': baseBio['en'] || (language === 'en' ? currentLines : splitLines(translated['en'] || '')),
-          'ja': baseBio['ja'] || (language === 'ja' ? currentLines : splitLines(translated['ja'] || '')),
-          'ko': baseBio['ko'] || (language === 'ko' ? currentLines : splitLines(translated['ko'] || '')),
-        };
-      } catch (err) {
-        console.warn('Auto translation failed for bio:', err);
-        return { ...existingBio, [language]: currentLines };
-      }
-    };
+        // Compare current input against original DB value before form edits
+        const savedSourceText = (originalMap[language] || '').trim();
+        const isUnchanged = savedSourceText === sourceText;
+        const hasAllLangs = targetLangs.every(lang => originalMap[lang] && originalMap[lang].trim() !== '');
 
-    const parseFieldToObj = (field: any): Record<string, any> => {
-      if (typeof field === 'string') {
-        const trimmed = field.trim();
-        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-          try {
-            return JSON.parse(trimmed);
-          } catch {
-            return { 'zh-CN': field };
-          }
+        if (isUnchanged && hasAllLangs) {
+          return { ...originalMap, ...currentMap };
         }
-        return { 'zh-CN': field };
-      }
-      if (typeof field === 'object' && field !== null) {
-        return field;
-      }
-      return {};
-    };
 
-    const currentTitle = typeof profileForm.title === 'string' ? profileForm.title : (profileForm.title as Record<LanguageCode, string>)[language] || '';
-    const currentSubtitle = typeof profileForm.subtitle === 'string' ? profileForm.subtitle : (profileForm.subtitle as Record<LanguageCode, string>)[language] || '';
-    const currentSpeech = typeof profileForm.speechBubbleText === 'string' ? profileForm.speechBubbleText : (profileForm.speechBubbleText as Record<LanguageCode, string>)[language] || '';
-    const currentLocation = typeof profileForm.location === 'string' ? profileForm.location : (profileForm.location as Record<LanguageCode, string>)[language] || '';
-    const statusObj = parseFieldToObj(profileForm.statusText);
-    const currentStatus = statusObj[language] || statusObj['zh-CN'] || '';
-    const currentBioLines = Array.isArray(profileForm.bioLines) ? profileForm.bioLines : (profileForm.bioLines as Record<LanguageCode, string[]>)[language] || [];
+        try {
+          const translated = await translateTextWithDeepL(currentVal, language);
+          const result: Record<string, string> = {
+            ...currentMap,
+            [language]: currentVal,
+          };
 
-    const finalTitle = await processFieldTranslations(currentTitle, profileForm.title);
-    const finalSubtitle = await processFieldTranslations(currentSubtitle, profileForm.subtitle);
-    const finalSpeech = await processFieldTranslations(currentSpeech, profileForm.speechBubbleText);
-    const finalLocation = await processFieldTranslations(currentLocation, profileForm.location);
-    const finalStatus = await processFieldTranslations(currentStatus, statusObj);
-    const finalBio = await processBioTranslations(currentBioLines, profileForm.bioLines);
+          for (const lang of targetLangs) {
+            if (lang === language) {
+              result[lang] = currentVal;
+            } else if (translated[lang]) {
+              result[lang] = translated[lang];
+            } else if (currentMap[lang]) {
+              result[lang] = currentMap[lang];
+            }
+          }
+          return result;
+        } catch (err) {
+          console.warn('Auto translation failed:', err);
+          return {
+            ...currentMap,
+            [language]: currentVal
+          };
+        }
+      };
 
-    updateProfile({
-      ...profileForm,
-      title: finalTitle,
-      subtitle: finalSubtitle,
-      speechBubbleText: finalSpeech,
-      location: finalLocation,
-      statusText: finalStatus,
-      bioLines: finalBio
-    });
+      const processBioTranslations = async (currentLines: string[], originalBio: any, currentBio: any) => {
+        const sourceText = currentLines.join('\n').trim();
+        const originalMap: Record<string, string[]> =
+          typeof originalBio === 'object' && !Array.isArray(originalBio) && originalBio !== null ? originalBio : {};
+        const currentMap: Record<string, string[]> =
+          typeof currentBio === 'object' && !Array.isArray(currentBio) && currentBio !== null ? currentBio : {};
+
+        if (!sourceText) return { 'zh-CN': [], 'zh-TW': [], 'en': [], 'ja': [], 'ko': [] };
+
+        const targetLangs: LanguageCode[] = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko'];
+
+        // Compare current bio against original DB bio before form edits
+        const savedLines = originalMap[language] || [];
+        const savedText = savedLines.join('\n').trim();
+        const isUnchanged = savedText === sourceText;
+        const hasAllLangs = targetLangs.every(lang => originalMap[lang] && originalMap[lang].length > 0);
+
+        if (isUnchanged && hasAllLangs) {
+          return { ...originalMap, ...currentMap };
+        }
+
+        try {
+          const translated = await translateTextWithDeepL(sourceText, language);
+          const splitLines = (text: string) => text ? text.split('\n').filter(Boolean) : [];
+
+          const result: Record<string, string[]> = {
+            ...currentMap,
+            [language]: currentLines,
+          };
+
+          for (const lang of targetLangs) {
+            if (lang === language) {
+              result[lang] = currentLines;
+            } else if (translated[lang]) {
+              result[lang] = splitLines(translated[lang]);
+            } else if (currentMap[lang]) {
+              result[lang] = currentMap[lang];
+            }
+          }
+          return result;
+        } catch (err) {
+          console.warn('Auto translation failed for bio:', err);
+          return {
+            ...currentMap,
+            [language]: currentLines
+          };
+        }
+      };
+
+      const parseFieldToObj = (field: any): Record<string, any> => {
+        if (typeof field === 'string') {
+          const trimmed = field.trim();
+          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+            try {
+              return JSON.parse(trimmed);
+            } catch {
+              return { 'zh-CN': field };
+            }
+          }
+          return { 'zh-CN': field };
+        }
+        if (typeof field === 'object' && field !== null) {
+          return field;
+        }
+        return {};
+      };
+
+      const currentTitle = typeof profileForm.title === 'string' ? profileForm.title : (profileForm.title as Record<LanguageCode, string>)[language] || '';
+      const currentSubtitle = typeof profileForm.subtitle === 'string' ? profileForm.subtitle : (profileForm.subtitle as Record<LanguageCode, string>)[language] || '';
+      const currentSpeech = typeof profileForm.speechBubbleText === 'string' ? profileForm.speechBubbleText : (profileForm.speechBubbleText as Record<LanguageCode, string>)[language] || '';
+      const currentLocation = typeof profileForm.location === 'string' ? profileForm.location : (profileForm.location as Record<LanguageCode, string>)[language] || '';
+      const statusObj = parseFieldToObj(profileForm.statusText);
+      const currentStatus = statusObj[language] || statusObj['zh-CN'] || '';
+      const currentBioLines = Array.isArray(profileForm.bioLines) ? profileForm.bioLines : (profileForm.bioLines as Record<LanguageCode, string[]>)[language] || [];
+
+      const finalTitle = await processFieldTranslations(currentTitle, data.profile.title, profileForm.title);
+      const finalSubtitle = await processFieldTranslations(currentSubtitle, data.profile.subtitle, profileForm.subtitle);
+      const finalSpeech = await processFieldTranslations(currentSpeech, data.profile.speechBubbleText, profileForm.speechBubbleText);
+      const finalLocation = await processFieldTranslations(currentLocation, data.profile.location, profileForm.location);
+      const finalStatus = await processFieldTranslations(currentStatus, data.profile.statusText, statusObj);
+      const finalBio = await processBioTranslations(currentBioLines, data.profile.bioLines, profileForm.bioLines);
+
+      await updateProfile({
+        ...profileForm,
+        title: finalTitle,
+        subtitle: finalSubtitle,
+        speechBubbleText: finalSpeech,
+        location: finalLocation,
+        statusText: finalStatus,
+        bioLines: finalBio
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -376,10 +436,11 @@ export const ProfileTab: React.FC = () => {
 
       <button
         type="submit"
-        className="self-start bg-black text-yellow-300 border-2 border-black px-6 py-3 rounded-xl text-xs font-black shadow-[4px_4px_0px_0px_#FFE4E6] hover:bg-zinc-800 transition-all flex items-center gap-2"
+        disabled={isSaving}
+        className="self-start bg-black text-yellow-300 border-2 border-black px-6 py-3 rounded-xl text-xs font-black shadow-[4px_4px_0px_0px_#FFE4E6] hover:bg-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center gap-2"
       >
-        <Save className="w-4 h-4" />
-        <span>{t.save}</span>
+        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+        <span>{isSaving ? `${t.save}...` : t.save}</span>
       </button>
     </form>
   );

@@ -7,11 +7,13 @@ import { ExperienceTimeline } from './components/frontend/ExperienceTimeline';
 import { ProjectsGrid } from './components/frontend/ProjectsGrid';
 import { BlogSocialSection } from './components/frontend/BlogSocialSection';
 import { ProjectDetailModal } from './components/frontend/ProjectDetailModal';
+import { PdfExportModal } from './components/frontend/PdfExportModal';
 import { AdminLoginPage } from './components/admin/AdminLoginPage';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { GlobalAdminShortcutListener } from './components/GlobalAdminShortcutListener';
 import { AnimeLoader } from './components/frontend/AnimeLoader';
 import { VisitorCounter } from './components/frontend/VisitorCounter';
+import { CyberContextMenu } from './components/frontend/CyberContextMenu';
 import { Sparkles, Terminal, Shield, ChevronDown, Github, Twitter, Mail, Globe, Tv, Share2, ExternalLink, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -116,7 +118,7 @@ function MainLayout() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3 }}
-              className="w-full max-w-6xl mx-auto px-4 py-8 space-y-12 md:space-y-16 transition-all duration-300 flex-1 relative"
+              className="w-full max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-8 sm:space-y-12 md:space-y-16 transition-all duration-300 flex-1 relative"
             >
               {/* SECTION 1: MangaHero */}
               <section id="section-hero">
@@ -179,21 +181,18 @@ function MainLayout() {
                 </motion.div>
 
                 {/* Footer Component */}
-                <footer className="w-full pt-4">
-                  <div className="bg-amber-100 dark:bg-slate-900 border-3 border-black dark:border-zinc-200 rounded-2xl p-5 md:p-6 shadow-[6px_6px_0px_0px_#000] dark:shadow-[6px_6px_0px_0px_#38BDF8] flex flex-col md:flex-row items-start md:items-center justify-between gap-5 transition-colors">
+                <footer className="w-full pt-2 sm:pt-4">
+                  <div className="bg-amber-100 dark:bg-slate-900 border-3 border-black dark:border-zinc-200 rounded-2xl p-4 sm:p-5 md:p-6 shadow-[4px_4px_0px_0px_#000] sm:shadow-[6px_6px_0px_0px_#000] dark:shadow-[4px_4px_0px_0px_#38BDF8] sm:dark:shadow-[6px_6px_0px_0px_#38BDF8] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-5 transition-colors">
                     
                     {/* Left Info & Social Links Group */}
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-black text-yellow-300 rounded-xl flex items-center justify-center font-black shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                          <Terminal className="w-4 h-4 stroke-[2.5]" />
+                    <div className="flex flex-col gap-2.5 sm:gap-3 w-full md:w-auto">
+                      <div className="flex items-center gap-2.5 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-9 sm:h-9 bg-black text-yellow-300 rounded-xl flex items-center justify-center font-black shrink-0 shadow-[2px_2px_0px_0px_#000]">
+                          <Terminal className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
                         </div>
                         <div>
-                          <p className="font-black text-xs text-black dark:text-white">
-                            {data.profile.name} · {t.siteTitle}
-                          </p>
-                          <p className="text-[11px] font-bold text-zinc-600 dark:text-zinc-400">
-                            {t.subTitle}
+                          <p className="font-black text-xs sm:text-sm text-black dark:text-white">
+                            {data.systemConfig?.siteTitle || data.profile.siteTitle || t.siteTitle || data.profile.name}
                           </p>
                         </div>
                       </div>
@@ -211,7 +210,7 @@ function MainLayout() {
                                 rel="noopener noreferrer"
                                 title={link.name}
                                 aria-label={link.name}
-                                className="w-8.5 h-8.5 bg-white dark:bg-slate-800 border-2 border-black dark:border-zinc-300 rounded-xl shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] hover:bg-yellow-300 dark:hover:bg-amber-400 hover:scale-105 active:scale-95 text-black dark:text-zinc-100 transition-all flex items-center justify-center"
+                                className="w-8 h-8 sm:w-8.5 sm:h-8.5 bg-white dark:bg-slate-800 border-2 border-black dark:border-zinc-300 rounded-xl shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] hover:bg-yellow-300 dark:hover:bg-amber-400 hover:scale-105 active:scale-95 text-black dark:text-zinc-100 transition-all flex items-center justify-center"
                               >
                                 {getFooterIcon(link.iconType, link.name)}
                               </a>
@@ -221,28 +220,27 @@ function MainLayout() {
                       })()}
 
                       {/* Copyright Information */}
-                      <div className="mt-1 text-[11px] font-bold text-zinc-600 dark:text-zinc-400 flex flex-wrap items-center gap-x-2 gap-y-0.5 leading-relaxed">
+                      <div className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] font-bold text-zinc-600 dark:text-zinc-400 flex flex-wrap items-center gap-x-2 gap-y-0.5 leading-relaxed">
                         <span>{data.systemConfig?.copyrightText || data.profile.copyrightText || `© 2026 ${data.profile.name}. ${t.copyrightReserved}`}</span>
                         {(data.systemConfig?.copyrightSubtext || data.profile.copyrightSubtext) && (
                           <>
                             <span className="text-zinc-400 dark:text-zinc-600">•</span>
-                            <span className="text-[10px] text-zinc-500 dark:text-zinc-500 font-mono">
+                            <span className="text-[9px] sm:text-[10px] text-zinc-500 dark:text-zinc-500 font-mono">
                               {data.systemConfig?.copyrightSubtext || data.profile.copyrightSubtext}
                             </span>
                           </>
                         )}
                       </div>
 
-
                     </div>
 
                     {/* Right Action Zone */}
-                    <div className="flex flex-wrap items-center gap-3 md:gap-4 self-end md:self-auto">
+                    <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 md:gap-4 self-start md:self-auto pt-2 md:pt-0 border-t md:border-t-0 border-black/10 dark:border-white/10 w-full md:w-auto justify-between md:justify-end">
                       <a 
                         href="https://github.com/adlerdler/Kyvero" 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="text-[10px] text-emerald-600 dark:text-emerald-400 opacity-60 hover:opacity-100 transition-opacity italic"
+                        className="text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 opacity-60 hover:opacity-100 transition-opacity italic"
                       >
                         {t.poweredByKyvero}
                       </a>
@@ -269,6 +267,12 @@ function MainLayout() {
 
       {/* Project Detail Modal */}
       <ProjectDetailModal />
+
+      {/* PDF Export Progress Modal */}
+      <PdfExportModal />
+
+      {/* Cyber Context Menu (Mobile Long Press & PC Left Click / Context Action) */}
+      <CyberContextMenu />
     </div>
   );
 }

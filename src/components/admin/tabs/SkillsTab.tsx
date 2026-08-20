@@ -57,22 +57,48 @@ export const SkillsTab: React.FC = () => {
       ? (skillForm.tagline as Record<LanguageCode, string>)[language]
       : String(skillForm.tagline || '');
 
-    if (currentTaglineText && currentTaglineText.trim() !== '') {
-      try {
-        const translated = await translateTextWithDeepL(currentTaglineText);
-        const baseTagline = typeof skillForm.tagline === 'object' && skillForm.tagline !== null
-          ? (skillForm.tagline as Record<LanguageCode, string>)
-          : { 'zh-CN': currentTaglineText, 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' };
+    const currentMap = typeof skillForm.tagline === 'object' && skillForm.tagline !== null
+      ? (skillForm.tagline as Record<LanguageCode, string>)
+      : {};
 
-        finalTagline = {
-          'zh-CN': baseTagline['zh-CN'] || (language === 'zh-CN' ? currentTaglineText : translated['zh-CN'] || currentTaglineText),
-          'zh-TW': baseTagline['zh-TW'] || (language === 'zh-TW' ? currentTaglineText : translated['zh-TW'] || ''),
-          'en': baseTagline['en'] || (language === 'en' ? currentTaglineText : translated['en'] || ''),
-          'ja': baseTagline['ja'] || (language === 'ja' ? currentTaglineText : translated['ja'] || ''),
-          'ko': baseTagline['ko'] || (language === 'ko' ? currentTaglineText : translated['ko'] || ''),
-        };
-      } catch (err) {
-        console.warn('Auto translation failed for skill tagline:', err);
+    const originalMap = typeof editingSkill?.tagline === 'object' && editingSkill?.tagline !== null
+      ? (editingSkill.tagline as Record<LanguageCode, string>)
+      : {};
+
+    const sourceText = currentTaglineText ? currentTaglineText.trim() : '';
+    const targetLangs: LanguageCode[] = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko'];
+    const savedSourceText = (originalMap[language] || '').trim();
+    const isUnchanged = savedSourceText === sourceText;
+    const hasAllLangs = targetLangs.every(lang => originalMap[lang] && originalMap[lang].trim() !== '');
+
+    if (sourceText) {
+      if (isUnchanged && hasAllLangs) {
+        finalTagline = { ...originalMap, ...currentMap };
+      } else {
+        try {
+          const translated = await translateTextWithDeepL(sourceText, language);
+          const taglineRes: Record<string, string> = {
+            ...currentMap,
+            [language]: sourceText,
+          };
+
+          for (const lang of targetLangs) {
+            if (lang === language) {
+              taglineRes[lang] = sourceText;
+            } else if (translated[lang]) {
+              taglineRes[lang] = translated[lang];
+            } else if (currentMap[lang]) {
+              taglineRes[lang] = currentMap[lang];
+            }
+          }
+          finalTagline = taglineRes;
+        } catch (err) {
+          console.warn('Auto translation failed for skill tagline:', err);
+          finalTagline = {
+            ...currentMap,
+            [language]: sourceText
+          };
+        }
       }
     }
 
@@ -111,7 +137,7 @@ export const SkillsTab: React.FC = () => {
   const startEditSkill = (skill: TechSkill) => {
     setEditingSkill(skill);
     const resolvedTagline = typeof skill.tagline === 'string'
-      ? { 'zh-CN': skill.tagline, 'zh-TW': skill.tagline, 'en': skill.tagline, 'ja': skill.tagline, 'ko': skill.tagline }
+      ? { 'zh-CN': skill.tagline, 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' }
       : (skill.tagline || { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' });
     setSkillForm({
       name: skill.name,

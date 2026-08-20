@@ -401,6 +401,37 @@ export interface TranslationDictionary {
   supabaseAnalyticsSyncError: string;
   supabaseUserSyncError: string;
   poweredByKyvero: string;
+
+  // Cyber Context Menu & Share Keys
+  cyberMenuTitle: string;
+  cyberMenuShare: string;
+  cyberMenuCopyLink: string;
+  cyberMenuBackToTop: string;
+  cyberMenuTheme: string;
+  cyberMenuThemeDark: string;
+  cyberMenuThemeLight: string;
+  cyberMenuLanguage: string;
+  cyberMenuEasterEgg: string;
+  cyberMenuShareTitle: string;
+  cyberMenuShareSubtitle: string;
+  cyberMenuQrCodeScan: string;
+  cyberMenuShareTwitter: string;
+  cyberMenuShareTelegram: string;
+  cyberMenuShareWeibo: string;
+  cyberMenuShareCopied: string;
+  cyberMenuHapticHint: string;
+
+  // Supplementary PDF Keys
+  pdfExportHeaderDossier: string;
+  pdfExportLiveOnline: string;
+  pdfExportScanQr: string;
+  pdfExportTechMatrix: string;
+  pdfExportExperienceTimeline: string;
+  pdfExportProjectsCatalog: string;
+  pdfExportGenerationStamp: string;
+  pdfExportQuickBtn: string;
+  pdfExportPresent: string;
+  pdfExportExternalLinks: string;
 }
 
 export const DEFAULT_LANGUAGE: LanguageCode = 'zh-CN';

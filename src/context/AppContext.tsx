@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { SiteData, LanguageCode, Project, Profile, SocialLink, FooterLink, TechSkill, MediaItem, SystemConfig, Experience, User, VisitorLogEntry } from '../types';
 import { INITIAL_SITE_DATA } from '../data/initialData';
 import { DEFAULT_LANGUAGE, TRANSLATIONS, TranslationDictionary } from '../i18n/languages';
+import { exportPortfolioToPDF } from '../utils/exportPdf';
+import { sortExperiences } from '../utils/textUtils';
 import {
   fetchAllSiteDataFromBackend,
   syncProfileToBackend,
@@ -35,6 +37,17 @@ interface AppContextType {
   toastMessage: string | null;
   currentUser: User | null;
   users: User[];
+  
+  // PDF Export Modal State and Actions
+  isPdfModalOpen: boolean;
+  pdfExportProgress: number;
+  pdfExportStatus: string;
+  isPdfExporting: boolean;
+  isPdfSuccess: boolean;
+  pdfError: string | null;
+  openPdfModal: () => void;
+  closePdfModal: () => void;
+  startPdfExport: () => Promise<void>;
   
   // Actions
   setLanguage: (lang: LanguageCode) => void;
@@ -99,6 +112,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return {
           ...INITIAL_SITE_DATA,
           ...parsed,
+          experiences: sortExperiences(parsed.experiences || INITIAL_SITE_DATA.experiences || []),
           users: (parsed.users && parsed.users.length > 0) ? parsed.users : INITIAL_SITE_DATA.users
         };
       }
@@ -121,11 +135,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           systemConfig: dbData.systemConfig || prev.systemConfig,
           projects: dbData.projects && dbData.projects.length > 0 ? dbData.projects : prev.projects,
           techSkills: dbData.techSkills && dbData.techSkills.length > 0 ? dbData.techSkills : prev.techSkills,
-          experiences: dbData.experiences && dbData.experiences.length > 0 ? dbData.experiences : prev.experiences,
+          experiences: sortExperiences(dbData.experiences && dbData.experiences.length > 0 ? dbData.experiences : prev.experiences),
           socialLinks: dbData.socialLinks && dbData.socialLinks.length > 0 ? dbData.socialLinks : prev.socialLinks,
           footerLinks: dbData.footerLinks && dbData.footerLinks.length > 0 ? dbData.footerLinks : prev.footerLinks,
           mediaItems: dbData.mediaItems && dbData.mediaItems.length > 0 ? dbData.mediaItems : prev.mediaItems,
           users: dbData.users && dbData.users.length > 0 ? dbData.users : prev.users,
+          analytics: dbData.analytics && dbData.analytics.length > 0 ? dbData.analytics : prev.analytics,
           totalVisits: dbData.totalVisits !== undefined ? dbData.totalVisits : prev.totalVisits
         }));
       }
@@ -188,7 +203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   });
 
-  // Theme state ('light' | 'dark')
+  // Theme state ('light' | 'dark') initialized with saved preference or system preference
   const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_THEME);
@@ -196,8 +211,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
       // ignore
     }
+    // Fallback to system OS preference (prefers-color-scheme)
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
     return 'light';
   });
+
+  // Listen for OS system theme changes (prefers-color-scheme)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+      // Only auto-switch theme if the user has NOT manually set a preference in localStorage
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY_THEME);
+        if (saved === 'dark' || saved === 'light') {
+          return;
+        }
+      } catch (err) {
+        // ignore
+      }
+      setThemeState(e.matches ? 'dark' : 'light');
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleSystemThemeChange);
+    } else {
+      mediaQuery.addListener(handleSystemThemeChange);
+    }
+
+    return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleSystemThemeChange);
+      } else {
+        mediaQuery.removeListener(handleSystemThemeChange);
+      }
+    };
+  }, []);
 
   // Current View state ('home' | 'admin') initialized from pathname
   const [currentView, setCurrentViewState] = useState<'home' | 'admin'>(() => {
@@ -229,13 +282,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Sync theme to document element class and localStorage
+  // Sync theme to document element class
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY_THEME, theme);
-    } catch (e) {
-      // ignore
-    }
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
       document.body.classList.add('dark');
@@ -248,6 +296,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const toggleTheme = () => {
     setThemeState(prev => {
       const nextTheme = prev === 'light' ? 'dark' : 'light';
+      try {
+        localStorage.setItem(STORAGE_KEY_THEME, nextTheme);
+      } catch (e) {
+        // ignore
+      }
       showToast(nextTheme === 'dark' ? getI18nStr('toastThemeDark') : getI18nStr('toastThemeLight'));
       return nextTheme;
     });
@@ -262,6 +315,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   });
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+  // PDF Export Modal States and Logic
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState<boolean>(false);
+  const [pdfExportProgress, setPdfExportProgress] = useState<number>(0);
+  const [pdfExportStatus, setPdfExportStatus] = useState<string>('准备导出 PDF...');
+  const [isPdfExporting, setIsPdfExporting] = useState<boolean>(false);
+  const [isPdfSuccess, setIsPdfSuccess] = useState<boolean>(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+
+  const openPdfModal = () => {
+    setIsPdfModalOpen(true);
+  };
+
+  const closePdfModal = () => {
+    setIsPdfModalOpen(false);
+  };
+
+  const startPdfExport = async () => {
+    setIsPdfModalOpen(true);
+    setIsPdfExporting(true);
+    setPdfExportProgress(0);
+    setIsPdfSuccess(false);
+    setPdfError(null);
+    setPdfExportStatus('正在启动高精度 PDF 转换引擎...');
+
+    try {
+      await exportPortfolioToPDF(data, language, (percent, statusText) => {
+        setPdfExportProgress(percent);
+        setPdfExportStatus(statusText);
+      });
+      setIsPdfSuccess(true);
+      showToast(t.pdfExportSuccessToast || '🎉 作品集 PDF 已成功生成并开始下载！');
+    } catch (err: any) {
+      console.error('PDF Export Error:', err);
+      const errText = err?.message || t.pdfExportFailedToast || '导出 PDF 失败，请稍后重试';
+      setPdfError(errText);
+      showToast(t.pdfExportFailedToast || '导出 PDF 失败');
+    } finally {
+      setIsPdfExporting(false);
+    }
+  };
 
   // Handle URL parameters for deep linking
   useEffect(() => {
@@ -282,7 +376,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Capture visit with 60-minute IP throttling and Supabase sync
   useEffect(() => {
     const recordVisit = async () => {
-      const SIXTY_MINUTES = 60 * 60 * 1000;
+      const FIFTEEN_MINUTES = 15 * 60 * 1000;
       const now = Date.now();
 
       // Get or create persistent visitor ID (stable IP/visitor hash)
@@ -296,19 +390,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const lastVisitTimeStr = localStorage.getItem('manga_portfolio_last_visit_time');
       const lastVisitTime = lastVisitTimeStr ? parseInt(lastVisitTimeStr, 10) : 0;
 
-      // If within 60 minutes, do not record
-      if (now - lastVisitTime < SIXTY_MINUTES) {
+      // If within 15 minutes, do not record
+      if (now - lastVisitTime < FIFTEEN_MINUTES) {
         return;
       }
 
-      // Update last visit time
-      localStorage.setItem('manga_portfolio_last_visit_time', now.toString());
-
       const newLog: VisitorLogEntry = {
-        id: crypto.randomUUID(),
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
         timestamp: new Date().toISOString(),
         path: window.location.pathname || '/',
-        userAgent: navigator.userAgent,
+        userAgent: navigator.userAgent || 'Unknown',
         referrer: document.referrer || '',
         ipHash: visitorId
       };
@@ -322,7 +413,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Sync to Backend (Hono)
       try {
-        await syncVisitorLogToBackend(newLog);
+        const res = await syncVisitorLogToBackend(newLog);
+        if (res?.success) {
+          localStorage.setItem('manga_portfolio_last_visit_time', now.toString());
+        }
       } catch (err) {
         console.error('Failed to sync visitor log to Backend:', err);
       }
@@ -368,7 +462,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const trimmedUser = (username || '').trim().toLowerCase();
 
     const matchedUser = userList.find(u => {
-      const matchPw = u.password === trimmedPw || trimmedPw === 'admin123' || trimmedPw === 'master';
+      const matchPw = u.password === trimmedPw;
       if (trimmedUser) {
         return (u.username.toLowerCase() === trimmedUser || u.email.toLowerCase() === trimmedUser) && matchPw;
       }
@@ -429,6 +523,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       users: updatedUsers
     }));
     setCurrentUser(updatedActiveUser);
+
+    syncUserToBackend(updatedActiveUser);
 
     showToast(getI18nStr('passwordChangedSuccess'));
     return { success: true };
@@ -635,7 +731,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setData(prev => ({
       ...prev,
-      experiences: [newExp, ...(prev.experiences || [])]
+      experiences: sortExperiences([newExp, ...(prev.experiences || [])])
     }));
     const res = await syncExperienceToBackend(newExp);
     showToast(res.success ? `${getI18nStr('toastExperienceAdded')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastExperienceAdded')} (${getI18nStr('toastLocalSuccess')})`);
@@ -644,7 +740,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updateExperience = async (updatedExp: Experience) => {
     setData(prev => ({
       ...prev,
-      experiences: (prev.experiences || []).map(e => (e.id === updatedExp.id ? updatedExp : e))
+      experiences: sortExperiences((prev.experiences || []).map(e => (e.id === updatedExp.id ? updatedExp : e)))
     }));
     const res = await syncExperienceToBackend(updatedExp);
     showToast(res.success ? `${getI18nStr('toastExperienceUpdated')} (${getI18nStr('toastSyncSuccess')})` : `${getI18nStr('toastExperienceUpdated')} (${getI18nStr('toastLocalSuccess')})`);
@@ -776,6 +872,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toastMessage,
         currentUser,
         users: data?.users && data.users.length > 0 ? data.users : [],
+        isPdfModalOpen,
+        pdfExportProgress,
+        pdfExportStatus,
+        isPdfExporting,
+        isPdfSuccess,
+        pdfError,
+        openPdfModal,
+        closePdfModal,
+        startPdfExport,
         setLanguage,
         toggleTheme,
         setCurrentView,

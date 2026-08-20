@@ -173,12 +173,18 @@ export const MediaTab: React.FC = () => {
                 >
                   {/* Image Box */}
                   <div className="aspect-video bg-zinc-100 relative group overflow-hidden">
-                    <img 
-                      src={item.url} 
-                      alt={item.name} 
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      referrerPolicy="no-referrer"
-                    />
+                    {item.url ? (
+                      <img 
+                        src={item.url} 
+                        alt={item.name} 
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center font-mono text-xs text-zinc-400">
+                        NO URL
+                      </div>
+                    )}
                     {/* Copy Overlay */}
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button

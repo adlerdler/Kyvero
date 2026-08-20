@@ -1,6 +1,11 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { createClient } from '@supabase/supabase-js';
+import * as OpenCC from 'opencc-js';
+import { sortExperiences } from '../utils/textUtils';
+
+const cn2tw = OpenCC.Converter({ from: 'cn', to: 'tw' });
+const tw2cn = OpenCC.Converter({ from: 'tw', to: 'cn' });
 
 const app = new Hono().basePath('/api');
 
@@ -59,7 +64,7 @@ app.get('/site-data', async (c) => {
       { data: footerLinks },
       { data: mediaItems },
       { data: users },
-      { count: analyticsCount }
+      { data: analyticsRows, count: analyticsCount }
     ] = await Promise.all([
       supabase.from('profiles').select('*'),
       supabase.from('system_config').select('*'),
@@ -70,14 +75,17 @@ app.get('/site-data', async (c) => {
       supabase.from('footer_links').select('*'),
       supabase.from('media_items').select('*'),
       supabase.from('users').select('*'),
-      supabase.from('analytics').select('*', { count: 'exact', head: true })
+      supabase.from('analytics').select('*', { count: 'exact' }).order('timestamp', { ascending: false }).limit(1000)
     ]);
 
     return c.json({
       success: true,
       data: {
-        profiles, systemConfigs, projects, techSkills, experiences,
-        socialLinks, footerLinks, mediaItems, users, totalVisits: analyticsCount
+        profiles, systemConfigs, projects, techSkills,
+        experiences: sortExperiences(experiences || []),
+        socialLinks, footerLinks, mediaItems, users,
+        analytics: analyticsRows || [],
+        totalVisits: analyticsCount !== null && analyticsCount !== undefined ? analyticsCount : (analyticsRows?.length || 0)
       }
     });
   } catch (error: any) {
@@ -101,11 +109,14 @@ app.post('/projects', async (c) => {
   try {
     const supabase = getSupabase(c.env);
     const body = await c.req.json();
+    if (!body.created_at) {
+      body.created_at = new Date().toISOString();
+    }
     const { error } = await supabase.from('projects').upsert(body);
     if (error) throw error;
     return c.json({ success: true });
   } catch (error: any) {
-    return c.json({ success: false, error }, 401);
+    return c.json({ success: false, error: error?.message || error }, 500);
   }
 });
 
@@ -169,15 +180,45 @@ app.delete('/tech-skills/:id', async (c) => {
   }
 });
 
+app.get('/analytics', async (c) => {
+  try {
+    const supabase = getSupabase(c.env);
+    const { data, error } = await supabase
+      .from('analytics')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(1000);
+    if (error) throw error;
+    return c.json({ success: true, data: data || [] });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message || error }, 500);
+  }
+});
+
 app.post('/analytics', async (c) => {
   try {
     const supabase = getSupabase(c.env);
-    const body = await c.req.json();
-    const { error } = await supabase.from('analytics').insert(body);
-    if (error) throw error;
+    const body = await c.req.json().catch(() => ({}));
+    
+    // Map camelCase to PostgreSQL table snake_case columns
+    const payload = {
+      id: body.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8)),
+      timestamp: body.timestamp || new Date().toISOString(),
+      path: body.path || '/',
+      user_agent: body.userAgent || body.user_agent || c.req.header('user-agent') || 'Unknown',
+      referrer: body.referrer !== undefined ? body.referrer : (c.req.header('referer') || null),
+      ip_hash: body.ipHash || body.ip_hash || 'ip_' + Math.random().toString(36).substring(2, 10)
+    };
+
+    const { error } = await supabase.from('analytics').insert(payload);
+    if (error) {
+      console.error('Supabase analytics insert error:', error);
+      throw error;
+    }
     return c.json({ success: true });
   } catch (error: any) {
-    return c.json({ success: false, error }, 401);
+    console.error('Error in /analytics POST:', error);
+    return c.json({ success: false, error: error.message || error }, 500);
   }
 });
 
@@ -471,15 +512,19 @@ app.get('/llms.txt', async (c) => {
 
 app.post('/translate', async (c) => {
   try {
-    const { sourceText } = await c.req.json();
-    const apiKey = (c.env as any)?.DEEPL_API_KEY || process?.env?.DEEPL_API_KEY;
-
-    if (!apiKey || apiKey === 'your-deepl-api-key') {
-      return c.json({ success: false, error: 'DeepL API key not configured' }, 400);
+    const { sourceText, sourceLang = 'zh-CN' } = await c.req.json();
+    if (!sourceText || typeof sourceText !== 'string' || sourceText.trim() === '') {
+      return c.json({
+        success: true,
+        translations: { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' }
+      });
     }
 
+    const apiKey = (c.env as any)?.DEEPL_API_KEY || process?.env?.DEEPL_API_KEY;
     const targetLanguages = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko'];
-    const result: Record<string, string> = {};
+    const result: Record<string, string> = {
+      [sourceLang]: sourceText
+    };
 
     const mapDeepLLang = (code: string) => {
       if (code === 'zh-TW') return 'ZH-HANT';
@@ -490,37 +535,63 @@ app.post('/translate', async (c) => {
       return 'EN';
     };
 
-    const isFreeKey = apiKey.endsWith(':fx');
-    const apiUrl = isFreeKey 
-      ? 'https://api-free.deepl.com/v2/translate' 
+    const hasValidApiKey = apiKey && apiKey !== 'your-deepl-api-key';
+    const isFreeKey = hasValidApiKey ? apiKey.endsWith(':fx') : false;
+    const apiUrl = isFreeKey
+      ? 'https://api-free.deepl.com/v2/translate'
       : 'https://api.deepl.com/v2/translate';
 
-    await Promise.all(
-      targetLanguages.map(async (langCode) => {
-        const deeplTarget = mapDeepLLang(langCode);
+    const tasks = targetLanguages.map(async (langCode) => {
+      // 1. Filter out same source and target language
+      if (langCode === sourceLang) {
+        return { langCode, text: sourceText };
+      }
 
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `DeepL-Auth-Key ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            text: [sourceText],
-            target_lang: deeplTarget,
-          }),
-        });
+      // 2. OpenCC for Chinese Simplified <-> Traditional conversion
+      if ((sourceLang === 'zh-CN' || sourceLang === 'zh') && langCode === 'zh-TW') {
+        return { langCode, text: cn2tw(sourceText) };
+      }
+      if (sourceLang === 'zh-TW' && (langCode === 'zh-CN' || langCode === 'zh')) {
+        return { langCode, text: tw2cn(sourceText) };
+      }
 
-        if (!response.ok) {
-          throw new Error(`DeepL API error for ${langCode}: ${response.statusText}`);
-        }
+      // 3. Use DeepL for other target languages (en, ja, ko)
+      if (!hasValidApiKey) {
+        throw new Error('DeepL API key not configured');
+      }
 
-        const data = await response.json();
-        if (data && data.translations && data.translations.length > 0) {
-          result[langCode] = data.translations[0].text;
-        }
-      })
-    );
+      const deeplTarget = mapDeepLLang(langCode);
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `DeepL-Auth-Key ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: [sourceText],
+          target_lang: deeplTarget,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`DeepL API error for ${langCode}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      if (data && data.translations && data.translations.length > 0) {
+        return { langCode, text: data.translations[0].text };
+      }
+
+      throw new Error(`No translation returned for ${langCode}`);
+    });
+
+    const settledResults = await Promise.allSettled(tasks);
+
+    settledResults.forEach((res) => {
+      if (res.status === 'fulfilled' && res.value) {
+        result[res.value.langCode] = res.value.text;
+      }
+    });
 
     return c.json({ success: true, translations: result });
   } catch (error: any) {

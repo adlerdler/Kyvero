@@ -17,21 +17,21 @@ export const Header: React.FC = () => {
       initial={{ opacity: 0, y: -15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="sticky top-0 z-40 bg-zinc-50/90 dark:bg-slate-950/90 backdrop-blur-md px-4 py-3 border-b-2 border-transparent dark:border-slate-800 transition-colors duration-300"
+      className="sticky top-0 z-40 bg-zinc-50/90 dark:bg-slate-950/90 backdrop-blur-md px-3 sm:px-4 py-2.5 sm:py-3 border-b-2 border-transparent dark:border-slate-800 transition-colors duration-300"
     >
-      <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+      <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 sm:gap-4">
         
         {/* Brand Logo & Anime Badge */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <div
             onClick={() => setCurrentView('home')}
-            className="relative group cursor-pointer"
+            className="relative group cursor-pointer shrink-0"
             title={data.systemConfig?.siteTitle || data.profile.siteTitle || `${data.profile.name} - ${t.returnToHome}`}
           >
             <motion.div
               whileHover={{ rotate: [-2, 2, -2, 0], scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="w-11 h-11 bg-amber-300 dark:bg-amber-400 border-2 border-black dark:border-white rounded-lg flex items-center justify-center overflow-hidden font-black text-xl text-black shadow-[3px_3px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] transition-all"
+              className="w-9 h-9 sm:w-11 sm:h-11 bg-amber-300 dark:bg-amber-400 border-2 border-black dark:border-white rounded-lg flex items-center justify-center overflow-hidden font-black text-lg sm:text-xl text-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] sm:dark:shadow-[3px_3px_0px_0px_#38BDF8] transition-all"
             >
               {data.systemConfig?.logoUrl || data.profile.logoUrl ? (
                 <img
@@ -45,31 +45,29 @@ export const Header: React.FC = () => {
                   }}
                 />
               ) : (
-                <Terminal className="w-6 h-6 stroke-[2.5]" />
+                <Terminal className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
               )}
             </motion.div>
           </div>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-black text-xl md:text-2xl text-black dark:text-white tracking-tighter font-mono flex items-center gap-2 transition-colors">
-                <span>{data.systemConfig?.siteTitle || data.profile.siteTitle || data.profile.name}</span>
-              </h1>
-            </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-black text-base sm:text-xl md:text-2xl text-black dark:text-white tracking-tight font-mono truncate transition-colors">
+              <span>{data.systemConfig?.siteTitle || data.profile.siteTitle || data.profile.name}</span>
+            </h1>
           </div>
         </div>
 
         {/* Action Controls: Theme Switcher & Language Switcher */}
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 shrink-0">
           {/* Theme Toggle Button (Light Anime vs Dark Anime) - Icon Only */}
           <motion.button
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.92 }}
             onClick={toggleTheme}
-            className={`p-2.5 rounded-xl border-2 transition-all flex items-center justify-center ${
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 transition-all flex items-center justify-center ${
               theme === 'dark'
-                ? 'bg-slate-900 text-amber-300 border-zinc-200 shadow-[2.5px_2.5px_0px_0px_#38BDF8] hover:bg-slate-800'
-                : 'bg-amber-300 text-black border-black shadow-[2.5px_2.5px_0px_0px_#000] hover:bg-amber-400'
+                ? 'bg-slate-900 text-amber-300 border-zinc-200 shadow-[2px_2px_0px_0px_#38BDF8] sm:shadow-[2.5px_2.5px_0px_0px_#38BDF8] hover:bg-slate-800'
+                : 'bg-amber-300 text-black border-black shadow-[2px_2px_0px_0px_#000] sm:shadow-[2.5px_2.5px_0px_0px_#000] hover:bg-amber-400'
             }`}
             title={theme === 'dark' ? t.switchToLightMode : t.switchToDarkMode}
           >
@@ -86,7 +84,7 @@ export const Header: React.FC = () => {
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setLangMenuOpen(!langMenuOpen)}
-              className="flex items-center gap-1.5 bg-white dark:bg-slate-900 border-2 border-black dark:border-zinc-200 p-2.5 rounded-xl text-black dark:text-white shadow-[2.5px_2.5px_0px_0px_#000] dark:shadow-[2.5px_2.5px_0px_0px_#38BDF8] hover:bg-zinc-100 dark:hover:bg-slate-800 transition-colors"
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center bg-white dark:bg-slate-900 border-2 border-black dark:border-zinc-200 rounded-xl text-black dark:text-white shadow-[2px_2px_0px_0px_#000] sm:shadow-[2.5px_2.5px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] sm:dark:shadow-[2.5px_2.5px_0px_0px_#38BDF8] hover:bg-zinc-100 dark:hover:bg-slate-800 transition-colors"
               title={`${t.languageSelect} (${currentLangObj.name})`}
             >
               <FlagIcon code={language} className="w-5 h-3.5" />

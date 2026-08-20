@@ -4,12 +4,11 @@ import { AnimatePresence, motion } from 'motion/react';
 import { X, ImageIcon, Download, Plus, Edit2, Trash2 } from 'lucide-react';
 import { Project, LanguageCode } from '../../../types';
 import { MediaLibrarySelector } from '../MediaLibrarySelector';
-import { exportPortfolioToPDF } from '../../../utils/exportPdf';
 import { translateTextWithDeepL } from '../../../utils/deepl';
 
-const PROJECT_1_SVG = '';
-const PROJECT_2_SVG = '';
-const PROJECT_3_SVG = '';
+const PROJECT_1_SVG = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800';
+const PROJECT_2_SVG = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800';
+const PROJECT_3_SVG = 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=800';
 
 export const ProjectsTab: React.FC = () => {
   const {
@@ -23,7 +22,9 @@ export const ProjectsTab: React.FC = () => {
     getProjectSummary,
     getProjectDescription,
     getProjectCategory,
-    showToast
+    showToast,
+    startPdfExport,
+    isPdfExporting
   } = useApp();
 
   const dbt = t;
@@ -31,7 +32,6 @@ export const ProjectsTab: React.FC = () => {
   const [isAddingProject, setIsAddingProject] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [showProjectMediaSelector, setShowProjectMediaSelector] = useState(false);
-  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const [projectForm, setProjectForm] = useState({
     title: '',
@@ -44,19 +44,6 @@ export const ProjectsTab: React.FC = () => {
     tags: 'React, TypeScript, Tailwind',
     featured: false
   });
-
-  const handleExportPDF = async () => {
-    try {
-      setIsExportingPdf(true);
-      await exportPortfolioToPDF(data, language);
-      showToast(t.pdfExportSuccessToast);
-    } catch (err) {
-      console.error('Failed to export PDF:', err);
-      showToast(t.pdfExportFailedToast);
-    } finally {
-      setIsExportingPdf(false);
-    }
-  };
 
   const startEditProject = (p: Project) => {
     setEditingProject(p);
@@ -78,23 +65,46 @@ export const ProjectsTab: React.FC = () => {
     e.preventDefault();
     
     const processFieldTranslations = async (currentVal: string, existingObj: any) => {
-      const sourceText = currentVal;
-      if (!sourceText) return existingObj || {};
+      const sourceText = currentVal?.trim() || '';
+      if (!sourceText) return { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' };
+
+      const existingMap: Record<string, string> =
+        typeof existingObj === 'object' && existingObj !== null ? existingObj : {};
+
+      const targetLangs: LanguageCode[] = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko'];
+
+      // Check if text is unchanged and all target languages are already present
+      const savedSourceText = (existingMap[language] || '').trim();
+      const isUnchanged = savedSourceText === sourceText;
+      const hasAllLangs = targetLangs.every(lang => existingMap[lang] && existingMap[lang].trim() !== '');
+
+      if (isUnchanged && hasAllLangs) {
+        return existingMap;
+      }
 
       try {
-        const translated = await translateTextWithDeepL(sourceText);
-        const baseObj = typeof existingObj === 'object' && existingObj !== null ? existingObj : {};
-        
-        return {
-          'zh-CN': baseObj['zh-CN'] || (language === 'zh-CN' ? sourceText : translated['zh-CN'] || sourceText),
-          'zh-TW': baseObj['zh-TW'] || (language === 'zh-TW' ? sourceText : translated['zh-TW'] || ''),
-          'en': baseObj['en'] || (language === 'en' ? sourceText : translated['en'] || ''),
-          'ja': baseObj['ja'] || (language === 'ja' ? sourceText : translated['ja'] || ''),
-          'ko': baseObj['ko'] || (language === 'ko' ? sourceText : translated['ko'] || ''),
+        const translated = await translateTextWithDeepL(sourceText, language);
+        const result: Record<string, string> = {
+          ...existingMap,
+          [language]: sourceText,
         };
+
+        for (const lang of targetLangs) {
+          if (lang === language) {
+            result[lang] = sourceText;
+          } else if (translated[lang]) {
+            result[lang] = translated[lang];
+          } else if (existingMap[lang]) {
+            result[lang] = existingMap[lang];
+          }
+        }
+        return result;
       } catch (err) {
         console.warn('Auto translation failed:', err);
-        return { ...existingObj, [language]: sourceText };
+        return {
+          ...existingMap,
+          [language]: sourceText
+        };
       }
     };
 
@@ -160,13 +170,13 @@ export const ProjectsTab: React.FC = () => {
         </h4>
         <div className="flex items-center gap-2">
           <button
-            onClick={handleExportPDF}
-            disabled={isExportingPdf}
+            onClick={() => startPdfExport()}
+            disabled={isPdfExporting}
             className="bg-amber-300 dark:bg-amber-400 text-black border-2 border-black dark:border-zinc-200 px-3.5 py-1.5 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] hover:bg-amber-400 dark:hover:bg-amber-300 disabled:opacity-50 flex items-center gap-1.5 transition-all"
             title={t.pdfExportTitle}
           >
             <Download className="w-4 h-4 stroke-[2.5]" />
-            <span>{isExportingPdf ? dbt.pdfExportingBtn : dbt.exportPdfBtn}</span>
+            <span>{isPdfExporting ? dbt.pdfExportingBtn : dbt.exportPdfBtn}</span>
           </button>
 
           <button
@@ -424,8 +434,12 @@ export const ProjectsTab: React.FC = () => {
             className="bg-white dark:bg-slate-900 border-2 border-black dark:border-zinc-500 p-4 rounded-2xl shadow-[3px_3px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] flex flex-col md:flex-row md:items-center justify-between gap-3 hover:bg-zinc-50 dark:hover:bg-slate-800"
           >
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 bg-zinc-100 dark:bg-slate-800 border border-black dark:border-zinc-500 rounded-lg overflow-hidden shrink-0">
-                <img src={p.imageUrl} alt={getProjectTitle(p)} className="w-full h-full object-cover" />
+              <div className="w-14 h-14 bg-zinc-100 dark:bg-slate-800 border border-black dark:border-zinc-500 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
+                {p.imageUrl ? (
+                  <img src={p.imageUrl} alt={getProjectTitle(p)} className="w-full h-full object-cover" />
+                ) : (
+                  <ImageIcon className="w-5 h-5 text-zinc-400" />
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2">

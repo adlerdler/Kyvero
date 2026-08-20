@@ -1,4 +1,4 @@
-export async function translateTextWithDeepL(sourceText: string): Promise<Record<string, string>> {
+export async function translateTextWithDeepL(sourceText: string, sourceLang: string = 'zh-CN'): Promise<Record<string, string>> {
   const targetLanguages = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko'];
   const result: Record<string, string> = {};
 
@@ -16,7 +16,7 @@ export async function translateTextWithDeepL(sourceText: string): Promise<Record
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ sourceText }),
+      body: JSON.stringify({ sourceText, sourceLang }),
     });
 
     if (!response.ok) {

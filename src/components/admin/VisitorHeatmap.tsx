@@ -105,11 +105,19 @@ export const VisitorHeatmap: React.FC = () => {
     return data;
   }, [t.monthsList, realVisitsMap]);
 
-  // Statistics calculation for annual data
+  // Statistics calculation for annual data based on actual days with visit records
   const stats = useMemo(() => {
     const validDays = annualData.filter(d => !d.isFuture);
-    const totalVisits = validDays.reduce((acc, curr) => acc + curr.visits, 0);
-    const avgVisits = validDays.length ? Math.round(totalVisits / validDays.length) : 0;
+    const recordedDays = validDays.filter(d => d.visits > 0);
+    const recordedDaysCount = recordedDays.length > 0 ? recordedDays.length : (realVisitsMap.size > 0 ? realVisitsMap.size : (data?.totalVisits ? 1 : 0));
+    const totalVisitsFromDays = recordedDays.reduce((acc, curr) => acc + curr.visits, 0);
+    const totalVisits = Math.max(data?.totalVisits || 0, totalVisitsFromDays);
+    
+    const divisor = recordedDaysCount > 0 ? recordedDaysCount : 1;
+    const rawAvg = totalVisits > 0 ? totalVisits / divisor : 0;
+    // Format to 1 decimal place if not a whole number, otherwise whole integer
+    const avgVisits = rawAvg === 0 ? '0' : (rawAvg % 1 === 0 ? rawAvg.toString() : rawAvg.toFixed(1));
+    const numAvg = rawAvg;
     
     let peakDay: AnnualDayData = validDays[0] || { dateStr: '', dayOfWeek: 0, weekIndex: 0, visits: 0, monthName: '' };
     validDays.forEach(cell => {
@@ -118,16 +126,18 @@ export const VisitorHeatmap: React.FC = () => {
       }
     });
 
-    const activeDaysCount = validDays.filter(c => c.visits > avgVisits * 1.1 && c.visits > 0).length;
+    const activeDaysCount = recordedDays.filter(c => c.visits > numAvg * 1.1 && c.visits > 0).length;
 
     return {
       totalVisits,
       avgVisits,
+      numAvg,
       peakDay,
       activeDaysCount,
+      recordedDaysCount: recordedDaysCount,
       validDaysCount: validDays.length
     };
-  }, [annualData]);
+  }, [annualData, data?.totalVisits, realVisitsMap]);
 
   // Render D3 Annual Contribution Heatmap
   useEffect(() => {
@@ -412,7 +422,7 @@ export const VisitorHeatmap: React.FC = () => {
                 {ht.selectedDetailHeading}: <span className="font-mono text-amber-900 bg-amber-200 px-2 py-0.5 rounded border border-black">{selectedCell.dateStr}</span>
               </p>
               <p className="text-[11px] font-bold text-zinc-800 mt-0.5">
-                {t.heatmapDetailPrefix} <span className="font-mono font-black">{selectedCell.visits}</span> {t.visitsUnit}{t.heatmapDetailSuffix}{selectedCell.visits > stats.avgVisits * 1.3 ? `🔥 ${t.highTrafficDesc}` : selectedCell.visits > stats.avgVisits ? `⚡ ${t.aboveAverageDesc}` : `🌱 ${t.stableTrafficDesc}`}{t.heatmapDetailEnd}
+                {t.heatmapDetailPrefix} <span className="font-mono font-black">{selectedCell.visits}</span> {t.visitsUnit}{t.heatmapDetailSuffix}{selectedCell.visits > stats.numAvg * 1.3 ? `🔥 ${t.highTrafficDesc}` : selectedCell.visits > stats.numAvg ? `⚡ ${t.aboveAverageDesc}` : `🌱 ${t.stableTrafficDesc}`}{t.heatmapDetailEnd}
               </p>
             </div>
           </div>

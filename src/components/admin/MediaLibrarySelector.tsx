@@ -164,12 +164,10 @@ export const MediaLibrarySelector: React.FC<MediaLibrarySelectorProps> = ({
                       className="aspect-square bg-zinc-100 dark:bg-slate-900 border-3 border-black dark:border-zinc-500 rounded-xl flex flex-col items-center justify-center gap-2.5 hover:bg-zinc-200 dark:hover:bg-slate-800 hover:scale-[1.02] active:scale-95 transition-all shadow-[4px_4px_0px_0px_#000]"
                     >
                       <div className="w-12 h-12 bg-zinc-200 dark:bg-slate-700 border-2 border-black rounded-xl flex items-center justify-center overflow-hidden">
-                        {isSvg ? (
-                          <div className="w-full h-full flex items-center justify-center text-xs font-black text-black dark:text-white bg-zinc-200 dark:bg-slate-700">
-                            <img src={preset.url} className="w-full h-full object-cover" alt={preset.name} />
-                          </div>
-                        ) : (
+                        {preset.url ? (
                           <img src={preset.url} className="w-full h-full object-cover" alt={preset.name} />
+                        ) : (
+                          <ImageIcon className="w-5 h-5 text-zinc-400" />
                         )}
                       </div>
                       <span className="text-[11px] font-black text-zinc-700 dark:text-zinc-300 truncate max-w-[90%]">
@@ -193,13 +191,17 @@ export const MediaLibrarySelector: React.FC<MediaLibrarySelectorProps> = ({
                     title={item.name}
                   >
                     {/* Thumbnail Wrapper */}
-                    <div className="w-full h-full relative">
-                      <img 
-                        src={item.url} 
-                        alt={item.name} 
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
+                    <div className="w-full h-full relative flex items-center justify-center">
+                      {item.url ? (
+                        <img 
+                          src={item.url} 
+                          alt={item.name} 
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <ImageIcon className="w-5 h-5 text-zinc-400" />
+                      )}
                       {/* Selection Hover Overlay */}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <span className="text-[10px] font-black text-white bg-black/80 px-2.5 py-1.5 rounded border border-white/20">

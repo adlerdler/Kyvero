@@ -1,233 +1,398 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { SiteData } from '../types';
-import { TRANSLATIONS, TranslationDictionary, LanguageCode } from '../i18n/languages';
+import QRCode from 'qrcode';
+import { SiteData, LanguageCode, Experience, Project, TechSkill } from '../types';
+import { TRANSLATIONS, TranslationDictionary, DEFAULT_LANGUAGE } from '../i18n/languages';
+import { parseDescriptionSegments, sortExperiences } from './textUtils';
 
-export const exportPortfolioToPDF = async (data: SiteData, language: string) => {
-  const langKey = (language as LanguageCode) in TRANSLATIONS ? (language as LanguageCode) : 'zh-CN';
-  const t: TranslationDictionary = TRANSLATIONS[langKey] || TRANSLATIONS['zh-CN'];
+export const exportPortfolioToPDF = async (
+  data: SiteData, 
+  language: string, 
+  onProgress?: (percent: number, statusText: string) => void
+) => {
+  onProgress?.(5, '正在整理个人档案与系统配置...');
+  const langKey: LanguageCode = (language in TRANSLATIONS) ? (language as LanguageCode) : DEFAULT_LANGUAGE;
+  const t: TranslationDictionary = TRANSLATIONS[langKey] || TRANSLATIONS[DEFAULT_LANGUAGE];
 
-  // Create a temporary off-screen element for PDF rendering
-  const container = document.createElement('div');
-  container.style.position = 'absolute';
-  container.style.top = '-9999px';
-  container.style.left = '-9999px';
-  container.style.width = '800px'; // A4 width proportion
-  container.style.backgroundColor = '#ffffff';
-  container.style.color = '#000000';
-  container.style.fontFamily = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
-  container.style.padding = '40px';
-  container.style.boxSizing = 'border-box';
-
-  const localeStr = langKey === 'zh-CN' ? 'zh-CN'
-                  : langKey === 'zh-TW' ? 'zh-TW'
-                  : langKey === 'ja' ? 'ja-JP'
-                  : langKey === 'ko' ? 'ko-KR'
-                  : 'en-US';
-
-  const exportDate = new Date().toLocaleDateString(localeStr, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-
-  const getLocal = (field: any, lang: string) => {
+  // Helper for localized text fields
+  const getLocalText = (field: Record<LanguageCode, string> | string | undefined): string => {
     if (!field) return '';
     if (typeof field === 'string') return field;
-    return field[lang] || field['zh-CN'] || field['en'] || Object.values(field)[0] || '';
+    return field[langKey] || field[DEFAULT_LANGUAGE] || field['en'] || Object.values(field)[0] || '';
   };
 
-  // Render HTML structure
-  container.innerHTML = `
-    <div style="border: 3px solid #000000; padding: 24px; border-radius: 12px; background-color: #ffffff;">
-      <!-- Header / Personal Info -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000000; padding-bottom: 16px; margin-bottom: 20px;">
-        <div>
-          <h1 style="font-size: 28px; font-weight: 900; margin: 0; color: #000000; line-height: 1.2;">
-            ${data.profile.name || 'Kaito Lin'}
-          </h1>
-          <p style="font-size: 14px; font-weight: 700; color: #4b5563; margin: 4px 0 0 0;">
-            ${getLocal(data.profile.title, language) || 'Fullstack Engineer'}
-          </p>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
-            ${(data.profile.skills || [])
-              .map(
-                s => `<span style="background-color: #fef08a; border: 1px solid #000000; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px;">${s}</span>`
-              )
-              .join('')}
-          </div>
-        </div>
+  // Helper for localized string arrays
+  const getLocalArray = (field: Record<LanguageCode, string[]> | string[] | undefined): string[] => {
+    if (!field) return [];
+    if (Array.isArray(field)) return field;
+    return field[langKey] || field[DEFAULT_LANGUAGE] || field['en'] || Object.values(field)[0] || [];
+  };
 
-        <div style="text-align: right; font-size: 11px; font-weight: 700; color: #6b7280;">
-          <div style="background-color: #e0f2fe; border: 1px solid #000000; padding: 4px 8px; border-radius: 6px; display: inline-block; font-weight: 900; color: #000000; margin-bottom: 4px;">
-            PORTFOLIO RESUME
+  const currentUrl = typeof window !== 'undefined' ? window.location.origin : 'https://kyvero.dev';
+
+  // Generate QR Code data URL
+  let qrCodeDataUrl = '';
+  try {
+    qrCodeDataUrl = await QRCode.toDataURL(currentUrl, {
+      width: 200,
+      margin: 1,
+      color: {
+        dark: '#0F172A',
+        light: '#FFFFFF',
+      },
+    });
+  } catch (err) {
+    console.warn('QR code generation for PDF skipped:', err);
+  }
+
+  const profile = data.profile;
+  const experiences: Experience[] = sortExperiences(data.experiences || []);
+  const projects: Project[] = data.projects || [];
+  const techSkills: TechSkill[] = data.techSkills || [];
+  const bioLines = getLocalArray(profile.bioLines);
+  const profileTitle = getLocalText(profile.title);
+  const profileSubtitle = getLocalText(profile.subtitle);
+
+  // External links
+  const allExternalLinks: { label: string; url: string }[] = [];
+  if (profile.githubUrl) allExternalLinks.push({ label: 'GitHub', url: profile.githubUrl });
+  if (profile.blogUrl) allExternalLinks.push({ label: 'Blog', url: profile.blogUrl });
+  if (data.socialLinks && data.socialLinks.length > 0) {
+    data.socialLinks.forEach(s => {
+      if (s.url && !allExternalLinks.some(l => l.url === s.url)) {
+        allExternalLinks.push({ label: s.name || s.type, url: s.url });
+      }
+    });
+  }
+
+  // Standard A4 dimensions at 96 DPI: 794px width, 1123px height
+  const PAGE_WIDTH = 794;
+  const PAGE_HEIGHT = 1123;
+  const PADDING = 36;
+
+  // Header HTML (Page 1) - Subtitle on separate line
+  const headerHtml = `
+    <div style="background-color: #0F172A; color: #FFFFFF; border-radius: 12px; padding: 22px 26px; margin-bottom: 16px; width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center;">
+      <div style="flex: 1; padding-right: 20px;">
+        <div style="display: inline-block; background-color: #38BDF8; color: #0F172A; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; margin-bottom: 8px; text-transform: uppercase;">
+          ${t.pdfExportHeaderDossier || 'Professional Dossier'}
+        </div>
+        <div style="font-size: 26px; font-weight: 900; color: #FFFFFF; margin-bottom: 6px; line-height: 1.2;">
+          ${profile.name || 'Developer'}
+        </div>
+        <div style="font-size: 13px; font-weight: 700; color: #F8FAFC; line-height: 1.4; margin-bottom: 4px;">
+          ${profileTitle}
+        </div>
+        ${profileSubtitle ? `
+          <div style="font-size: 11px; font-weight: 600; color: #94A3B8; line-height: 1.4;">
+            ${profileSubtitle}
           </div>
-          <div>${t.pdfExportTitle || 'Export Date'}: ${exportDate}</div>
-          <div>${t.statusLabel}: ${data.profile.statusText || 'Available for projects'}</div>
+        ` : ''}
+      </div>
+      ${qrCodeDataUrl ? `
+        <div style="background-color: #FFFFFF; border-radius: 10px; padding: 8px; text-align: center; flex-shrink: 0; width: 72px;">
+          <img src="${qrCodeDataUrl}" style="width: 64px; height: 64px; display: block; margin: 0 auto 4px auto;" />
+          <div style="font-size: 8px; font-weight: 800; color: #0F172A;">${t.pdfExportLiveOnline || 'LIVE PORTFOLIO'}</div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  const miniHeaderHtml = (pageNum: number) => `
+    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 8px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="background-color: #0F172A; color: #FFFFFF; font-size: 9.5px; font-weight: 800; padding: 2px 6px; border-radius: 4px;">PAGE 0${pageNum}</span>
+        <span style="font-size: 12px; font-weight: 800; color: #0F172A;">${profile.name}</span>
+      </div>
+      <span style="font-size: 9.5px; font-weight: 700; color: #64748B;">${t.pdfExportHeaderDossier || 'Professional Dossier'}</span>
+    </div>
+  `;
+
+  // 1. Personal Strengths (個人優勢 / Overview) without outer border
+  const bioHtml = bioLines.length > 0 ? `
+    <div style="margin-bottom: 16px; box-sizing: border-box;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="background-color: #0F172A; color: #FFFFFF; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px;">01</span>
+          <span style="font-size: 13.5px; font-weight: 800; color: #0F172A;">${langKey === 'zh-TW' ? '個人優勢' : (langKey === 'zh-CN' ? '个人优势' : 'Personal Strengths')}</span>
         </div>
       </div>
+      ${bioLines.map(line => `
+        <div style="font-size: 11px; font-weight: 500; color: #334155; line-height: 1.5; margin-bottom: 5px; display: flex; gap: 8px;">
+          <span style="color: #38BDF8; font-weight: 800;">▪</span>
+          <span>${line}</span>
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
 
-      <!-- Bio / Summary -->
-      ${
-        (() => {
-          const bioLines = Array.isArray(data.profile.bioLines)
-            ? data.profile.bioLines
-            : (data.profile.bioLines as Record<LanguageCode, string[]>)[langKey] || (data.profile.bioLines as Record<LanguageCode, string[]>)['zh-CN'] || Object.values(data.profile.bioLines)[0] || [];
-          return bioLines && bioLines.length > 0
-            ? `<div style="margin-bottom: 20px; background-color: #f9fafb; border: 1.5px solid #000000; padding: 12px 16px; border-radius: 8px;">
-                <h3 style="font-size: 12px; font-weight: 900; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px;">${t.profileSection}</h3>
-                <p style="font-size: 11px; line-height: 1.5; font-weight: 600; color: #1f2937; margin: 0;">
-                  ${bioLines.join(' ')}
-                </p>
-              </div>`
-            : '';
-        })()
-      }
-
-      <!-- Tech Stack Section -->
-      ${
-        data.techSkills && data.techSkills.length > 0
-          ? `<div style="margin-bottom: 24px;">
-              <h2 style="font-size: 16px; font-weight: 900; border-bottom: 1.5px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0;">
-                ${t.techStack}
-              </h2>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                ${data.techSkills
-                  .map(
-                    skill => {
-                      const taglineStr = getLocal(skill.tagline, langKey);
-                      return `
-                  <div style="border: 1px solid #000000; border-radius: 6px; padding: 6px 10px; background-color: #ffffff; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                      <div style="font-size: 11px; font-weight: 800; color: #000000;">${skill.name} <span style="font-size: 9px; color: #6b7280; font-weight: 600;">(${skill.category})</span></div>
-                      ${taglineStr ? `<div style="font-size: 9px; color: #4b5563; margin-top: 2px;">${taglineStr}</div>` : ''}
-                    </div>
-                    <span style="font-size: 10px; font-weight: 900; font-family: monospace; background-color: #dcfce7; border: 1px solid #000000; padding: 1px 5px; border-radius: 4px;">
-                      ${skill.level}%
-                    </span>
-                  </div>
-                `;
-                    }
-                  )
-                  .join('')}
-              </div>
-            </div>`
-          : ''
-      }
-
-      <!-- Projects Section -->
-      <div style="margin-bottom: 20px;">
-        <h2 style="font-size: 16px; font-weight: 900; border-bottom: 1.5px solid #000000; padding-bottom: 4px; margin: 0 0 14px 0; display: flex; justify-content: space-between; align-items: center;">
-          <span>${t.allProjects} (${data.projects.length})</span>
-        </h2>
-
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-          ${data.projects
-            .map(
-              (project, index) => `
-            <div style="border: 1.5px solid #000000; border-radius: 8px; padding: 12px; background-color: ${project.featured ? '#fffbebfd' : '#ffffff'};">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span style="background-color: #000000; color: #ffffff; font-size: 10px; font-weight: 900; padding: 1px 6px; border-radius: 4px; font-family: monospace;">
-                    #0${index + 1}
-                  </span>
-                  <h3 style="font-size: 13px; font-weight: 900; margin: 0; color: #000000;">
-                    ${getLocal(project.title, langKey)}
-                  </h3>
-                  ${
-                    project.featured
-                      ? `<span style="background-color: #f43f5e; color: #ffffff; border: 1px solid #000000; font-size: 8px; font-weight: 900; padding: 1px 4px; border-radius: 3px;">${t.featuredProjects}</span>`
-                      : ''
-                  }
-                </div>
-                <span style="background-color: #e2e8f0; border: 1px solid #000000; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 4px;">
-                  ${getLocal(project.category, langKey)}
-                </span>
-              </div>
-
-              <p style="font-size: 11px; font-weight: 700; color: #374151; margin: 4px 0 6px 0; line-height: 1.4;">
-                ${getLocal(project.summary, langKey)}
-              </p>
-
-              ${
-                project.tags && (Array.isArray(project.tags) ? project.tags.length > 0 : Boolean(project.tags))
-                  ? `<div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px;">
-                      ${(Array.isArray(project.tags) ? project.tags : String(project.tags).split(','))
-                        .map(
-                          tagItem => `<span style="background-color: #f3f4f6; border: 1px solid #9ca3af; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 3px;">${tagItem.trim()}</span>`
-                        )
-                        .join('')}
-                    </div>`
-                  : ''
-              }
-
-              ${
-                project.demoUrl || project.githubUrl
-                  ? `<div style="margin-top: 8px; pt: 4px; border-top: 1px dashed #d1d5db; display: flex; gap: 12px; font-size: 9px; font-family: monospace; font-weight: 700; color: #4b5563;">
-                      ${project.demoUrl ? `<div>Demo: ${project.demoUrl}</div>` : ''}
-                      ${project.githubUrl ? `<div>GitHub: ${project.githubUrl}</div>` : ''}
-                    </div>`
-                  : ''
-              }
+  // 2. Tech Skills (個人技能)
+  const techHtml = techSkills.length > 0 ? `
+    <div style="margin-bottom: 16px; box-sizing: border-box;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="background-color: #0F172A; color: #FFFFFF; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px;">02</span>
+          <span style="font-size: 13.5px; font-weight: 800; color: #0F172A;">${langKey === 'zh-TW' ? '個人技能' : (langKey === 'zh-CN' ? '个人技能' : 'Personal Skills')}</span>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        ${techSkills.map(s => `
+          <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px; background-color: #FFFFFF; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;">
+            <div>
+              <div style="font-size: 11.5px; font-weight: 800; color: #0F172A;">${s.name}</div>
+              <div style="font-size: 9.5px; font-weight: 600; color: #64748B; margin-top: 2px;">${s.category}</div>
             </div>
-          `
-            )
-            .join('')}
+            <div style="font-size: 11px; font-weight: 800; color: #0F172A;">
+              ${s.level}%
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  const expHeaderHtml = experiences.length > 0 ? `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="background-color: #0F172A; color: #FFFFFF; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px;">03</span>
+        <span style="font-size: 13.5px; font-weight: 800; color: #0F172A;">${t.pdfExportExperienceTimeline || 'Professional Experience'}</span>
+      </div>
+    </div>
+  ` : '';
+
+  const renderExp = (exp: Experience) => {
+    const descSegments = parseDescriptionSegments(getLocalText(exp.description));
+    const descHtml = descSegments.length > 0
+      ? descSegments.map(seg => `
+          <div style="display: flex; align-items: flex-start; gap: 6px; margin-bottom: 3px;">
+            <span style="color: #0284C7; font-weight: 800; font-size: 11px; line-height: 1.4;">•</span>
+            <span style="flex: 1; font-size: 11px; font-weight: 450; color: #334155; line-height: 1.55;">${seg.replace(/^[•\-\*\>]\s*/, '')}</span>
+          </div>
+        `).join('')
+      : '';
+
+    return `
+    <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px 16px; background-color: #FFFFFF; margin-bottom: 10px; box-sizing: border-box;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <div style="font-size: 12.5px; font-weight: 800; color: #0F172A;">
+          ${getLocalText(exp.role)} <span style="color: #94A3B8; font-weight: 400;">·</span> <span style="color: #0284C7;">${getLocalText(exp.company)}</span>
+        </div>
+        <div style="font-size: 9.5px; font-weight: 700; color: #64748B;">
+          ${exp.startDate} – ${exp.endDate.toLowerCase() === 'present' ? (t.pdfExportPresent || 'Present') : exp.endDate}
         </div>
       </div>
+      <div style="margin-bottom: 8px;">
+        ${descHtml}
+      </div>
+      ${exp.technologies && exp.technologies.length > 0 ? `
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
+          ${exp.technologies.map(tech => `
+            <span style="font-size: 9.5px; font-weight: 600; color: #0284C7;">#${tech}</span>
+          `).join('')}
+        </div>
+      ` : ''}
+    </div>
+  `;
+  };
 
-      <!-- Social / Contact Links Footer -->
-      <div style="border-top: 2px solid #000000; padding-top: 12px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; font-weight: 700; color: #4b5563;">
-        <div>
-          ${t.contactMe}: ${data.socialLinks.map(s => `${s.name || s.type} (${s.url})`).join(' · ')}
+  const projHeaderHtml = projects.length > 0 ? `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="background-color: #0F172A; color: #FFFFFF; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px;">04</span>
+        <span style="font-size: 13.5px; font-weight: 800; color: #0F172A;">${t.pdfExportProjectsCatalog || 'Key Projects'}</span>
+      </div>
+    </div>
+  ` : '';
+
+  const renderProj = (proj: Project) => {
+    const tagList: string[] = Array.isArray(proj.tags) ? proj.tags : [];
+
+    return `
+      <div style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px 16px; background-color: #FFFFFF; margin-bottom: 10px; box-sizing: border-box;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 12.5px; font-weight: 800; color: #0F172A;">${getLocalText(proj.title)}</span>
+          </div>
+          <span style="background-color: #F1F5F9; border: 1px solid #E2E8F0; font-size: 9px; font-weight: 700; color: #475569; padding: 2.5px 7px; border-radius: 4px;">${getLocalText(proj.category) || 'Software'}</span>
         </div>
-        <div style="font-family: monospace; font-weight: 900; color: #000000;">
-          A1L MECHA SYSTEM GENERATED
-        </div>
+        <div style="font-size: 11px; font-weight: 600; color: #1E293B; margin-bottom: 4px;">${getLocalText(proj.summary)}</div>
+        ${tagList.length > 0 ? `
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px;">
+            ${tagList.map(tag => `
+              <span style="font-size: 9px; font-weight: 600; color: #0284C7;">#${tag}</span>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  };
+
+  const linksHtml = allExternalLinks.length > 0 ? `
+    <div style="margin-bottom: 16px; box-sizing: border-box;">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+        <span style="background-color: #0F172A; color: #FFFFFF; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px;">05</span>
+        <span style="font-size: 13.5px; font-weight: 800; color: #0F172A;">${t.pdfExportExternalLinks || 'External Links'}</span>
+      </div>
+      <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 8px;">
+        ${allExternalLinks.map(l => `
+          <div style="background-color: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 6px; padding: 4px 10px; font-size: 9.5px; display: flex; gap: 6px;">
+            <span style="font-weight: 800; color: #0F172A; background-color: #F1F5F9; padding: 1px 5px; border-radius: 3px;">${l.label}</span>
+            <span style="font-weight: 600; color: #0284C7;">${l.url}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  ` : '';
+
+  const footerHtml = (page: number, total: number) => `
+    <div style="border-top: 1px solid #E2E8F0; padding-top: 10px; margin-top: auto; display: flex; justify-content: space-between; align-items: center; font-size: 9.5px; font-weight: 600; color: #64748B;">
+      <div>${data.systemConfig?.copyrightText || profile.copyrightText || `© 2026 ${profile.name}`}</div>
+      <div style="font-weight: 800; color: #0F172A; display: flex; gap: 8px; align-items: center;">
+        <span>PAGE ${page} / ${total}</span>
       </div>
     </div>
   `;
 
-  document.body.appendChild(container);
+  // Assemble all blocks
+  interface Block {
+    html: string;
+    isHeader?: boolean;
+  }
 
-  try {
-    const canvas = await html2canvas(container, {
-      scale: 2, // High resolution crisp output
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff'
-    });
+  const blocks: Block[] = [];
+  if (bioHtml) blocks.push({ html: bioHtml });
+  if (techHtml) blocks.push({ html: techHtml });
+  if (experiences.length > 0) {
+    blocks.push({ html: expHeaderHtml, isHeader: true });
+    experiences.forEach(e => blocks.push({ html: renderExp(e) }));
+  }
+  if (projects.length > 0) {
+    blocks.push({ html: projHeaderHtml, isHeader: true });
+    projects.forEach(p => blocks.push({ html: renderProj(p) }));
+  }
+  if (linksHtml) blocks.push({ html: linksHtml });
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
+  onProgress?.(15, '正在测量布局并初始化 A4 纸张排版...');
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pdfWidth;
-    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+  // Measurement probe container placed off-screen
+  const probe = document.createElement('div');
+  probe.style.position = 'fixed';
+  probe.style.top = '-9999px';
+  probe.style.left = '-9999px';
+  probe.style.width = `${PAGE_WIDTH}px`;
+  probe.style.padding = `${PADDING}px`;
+  probe.style.boxSizing = 'border-box';
+  probe.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+  probe.style.backgroundColor = '#FFFFFF';
+  probe.style.opacity = '0';
+  probe.style.pointerEvents = 'none';
+  probe.style.zIndex = '-9999';
+  document.body.appendChild(probe);
 
-    let heightLeft = imgHeight;
-    let position = 0;
+  const measureHeight = (bList: Block[], isFirst: boolean, pNum: number) => {
+    probe.innerHTML = `
+      <div style="display: flex; flex-direction: column; width: 100%; box-sizing: border-box;">
+        <div>
+          ${isFirst ? headerHtml : miniHeaderHtml(pNum)}
+          <div>${bList.map(b => b.html).join('')}</div>
+        </div>
+        ${footerHtml(pNum, 99)}
+      </div>
+    `;
+    return probe.scrollHeight;
+  };
 
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pdfHeight;
+  // Split into pages
+  const pages: Block[][] = [];
+  let currentPage: Block[] = [];
 
-    // Handle multi-page if content overflows A4 height
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    const isFirst = pages.length === 0;
+    const pNum = pages.length + 1;
+
+    const candidate = [...currentPage, block];
+    let testCandidate = candidate;
+    if (block.isHeader && i + 1 < blocks.length) {
+      testCandidate = [...candidate, blocks[i + 1]];
     }
 
-    const fileName = `${data.profile.name || 'Portfolio'}_Projects_Resume.pdf`;
-    pdf.save(fileName);
-  } finally {
-    document.body.removeChild(container);
+    const h = measureHeight(testCandidate, isFirst, pNum);
+    if (h > (PAGE_HEIGHT - 10) && currentPage.length > 0) {
+      pages.push(currentPage);
+      currentPage = [block];
+    } else {
+      currentPage.push(block);
+    }
   }
-};
+  if (currentPage.length > 0) {
+    pages.push(currentPage);
+  }
 
+  document.body.removeChild(probe);
+
+  const totalPages = pages.length;
+  onProgress?.(30, `完成智能排版，共需渲染 ${totalPages} 页档案图层...`);
+
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  for (let idx = 0; idx < totalPages; idx++) {
+    const pageBlocks = pages[idx];
+    const isFirst = idx === 0;
+
+    const currentPercent = Math.min(85, 30 + Math.floor(((idx + 0.5) / totalPages) * 55));
+    onProgress?.(currentPercent, `正在绘制高精度图层 [第 ${idx + 1} / ${totalPages} 页]...`);
+
+    const pageDiv = document.createElement('div');
+    pageDiv.style.position = 'fixed';
+    pageDiv.style.top = '-9999px';
+    pageDiv.style.left = '-9999px';
+    pageDiv.style.width = `${PAGE_WIDTH}px`;
+    pageDiv.style.height = `${PAGE_HEIGHT}px`;
+    pageDiv.style.backgroundColor = '#FFFFFF';
+    pageDiv.style.color = '#0F172A';
+    pageDiv.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+    pageDiv.style.padding = `${PADDING}px`;
+    pageDiv.style.boxSizing = 'border-box';
+    pageDiv.style.display = 'flex';
+    pageDiv.style.flexDirection = 'column';
+    pageDiv.style.justifyContent = 'space-between';
+    pageDiv.style.zIndex = '-9999';
+    pageDiv.style.opacity = '1';
+    pageDiv.style.pointerEvents = 'none';
+
+    pageDiv.innerHTML = `
+      <div style="display: flex; flex-direction: column; width: 100%;">
+        ${isFirst ? headerHtml : miniHeaderHtml(idx + 1)}
+        <div>${pageBlocks.map(b => b.html).join('')}</div>
+      </div>
+      ${footerHtml(idx + 1, totalPages)}
+    `;
+
+    document.body.appendChild(pageDiv);
+
+    try {
+      const canvas = await html2canvas(pageDiv, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#FFFFFF',
+        width: PAGE_WIDTH,
+        height: PAGE_HEIGHT,
+        windowWidth: PAGE_WIDTH,
+        windowHeight: PAGE_HEIGHT,
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
+      if (idx > 0) pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+    } finally {
+      document.body.removeChild(pageDiv);
+    }
+  }
+
+  onProgress?.(92, '正在打包组装 PDF 文件并触发浏览器下载...');
+  const safeName = (profile.name || 'Portfolio').replace(/[^a-zA-Z0-9_\u4e00-\u9fa5]/g, '_');
+  pdf.save(`${safeName}_Professional_Dossier.pdf`);
+  onProgress?.(100, '🎉 PDF 档案成功导出，下载已开始！');
+};

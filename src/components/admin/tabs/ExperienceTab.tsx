@@ -4,6 +4,7 @@ import { Plus, Briefcase, Edit2, Trash2 } from 'lucide-react';
 import { Experience, LanguageCode } from '../../../types';
 import { ExperienceModal } from '../ExperienceModal';
 import { translateTextWithDeepL } from '../../../utils/deepl';
+import { sortExperiences } from '../../../utils/textUtils';
 
 export const ExperienceTab: React.FC = () => {
   const {
@@ -36,28 +37,54 @@ export const ExperienceTab: React.FC = () => {
   const handleExpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const processFieldTranslations = async (fieldObj: Record<LanguageCode, string>) => {
-      const sourceText = fieldObj[language] || fieldObj['zh-CN'] || Object.values(fieldObj).find(v => v && v.trim() !== '') || '';
-      if (!sourceText) return fieldObj;
+    const processFieldTranslations = async (fieldObj: Record<LanguageCode, string>, originalFieldObj: any) => {
+      const sourceText = (fieldObj[language] || fieldObj['zh-CN'] || Object.values(fieldObj).find(v => v && v.trim() !== '') || '').trim();
+      if (!sourceText) return { 'zh-CN': '', 'zh-TW': '', 'en': '', 'ja': '', 'ko': '' };
+
+      const currentMap = { ...fieldObj };
+      const originalMap: Record<string, string> =
+        typeof originalFieldObj === 'object' && originalFieldObj !== null ? originalFieldObj : {};
+
+      const targetLangs: LanguageCode[] = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko'];
+
+      // Compare current input against original DB value before form edits
+      const savedSourceText = (originalMap[language] || '').trim();
+      const isUnchanged = savedSourceText === sourceText;
+      const hasAllLangs = targetLangs.every(lang => originalMap[lang] && originalMap[lang].trim() !== '');
+
+      if (isUnchanged && hasAllLangs) {
+        return { ...originalMap, ...currentMap };
+      }
 
       try {
-        const translated = await translateTextWithDeepL(sourceText);
-        return {
-          'zh-CN': fieldObj['zh-CN'] || translated['zh-CN'] || sourceText,
-          'zh-TW': fieldObj['zh-TW'] || translated['zh-TW'] || '',
-          'en': fieldObj['en'] || translated['en'] || '',
-          'ja': fieldObj['ja'] || translated['ja'] || '',
-          'ko': fieldObj['ko'] || translated['ko'] || '',
+        const translated = await translateTextWithDeepL(sourceText, language);
+        const result: Record<string, string> = {
+          ...currentMap,
+          [language]: sourceText,
         };
+
+        for (const lang of targetLangs) {
+          if (lang === language) {
+            result[lang] = sourceText;
+          } else if (translated[lang]) {
+            result[lang] = translated[lang];
+          } else if (currentMap[lang]) {
+            result[lang] = currentMap[lang];
+          }
+        }
+        return result;
       } catch (err) {
         console.warn('Auto translation failed:', err);
-        return fieldObj;
+        return {
+          ...currentMap,
+          [language]: sourceText
+        };
       }
     };
 
-    const finalCompany = await processFieldTranslations(expForm.company);
-    const finalRole = await processFieldTranslations(expForm.role);
-    const finalDescription = await processFieldTranslations(expForm.description);
+    const finalCompany = await processFieldTranslations(expForm.company, editingExp?.company);
+    const finalRole = await processFieldTranslations(expForm.role, editingExp?.role);
+    const finalDescription = await processFieldTranslations(expForm.description, editingExp?.description);
     const techArray = expForm.technologies ? expForm.technologies.split(',').map(t => t.trim()).filter(Boolean) : [];
 
     if (editingExp) {
@@ -145,7 +172,7 @@ export const ExperienceTab: React.FC = () => {
       />
 
       <div className="grid grid-cols-1 gap-4">
-        {(data.experiences || []).map(exp => {
+        {sortExperiences<Experience>(data.experiences || []).map(exp => {
           const companyStr = typeof exp.company === 'string' ? exp.company : exp.company[language] || exp.company['zh-CN'] || '';
           const roleStr = typeof exp.role === 'string' ? exp.role : exp.role[language] || exp.role['zh-CN'] || '';
           return (
