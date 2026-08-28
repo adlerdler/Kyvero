@@ -28,17 +28,25 @@ function getFooterIcon(type: string, name?: string) {
 }
 
 function MainLayout() {
-  const { toastMessage, data, t, currentView, setCurrentView, isAdmin, getProfileField } = useApp();
+  const { toastMessage, data, t, currentView, setCurrentView, isAdmin, getProfileField, isBackendLoading } = useApp();
   const [isLoading, setIsLoading] = useState(true);
+  const [minTimerDone, setMinTimerDone] = useState(false);
   const [activeSection, setActiveSection] = useState<number>(0);
 
   useEffect(() => {
-    // Initial loading delay for anime startup sequence
+    // Minimum animation display time (400ms) for visual smoothness
     const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 850);
+      setMinTimerDone(true);
+    }, 400);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    // Hide loader only when DB data is fully loaded and min display time passed
+    if (minTimerDone && !isBackendLoading) {
+      setIsLoading(false);
+    }
+  }, [minTimerDone, isBackendLoading]);
 
   useEffect(() => {
     // Update site title dynamically

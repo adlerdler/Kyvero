@@ -26,6 +26,7 @@ import {
 
 interface AppContextType {
   data: SiteData;
+  isBackendLoading: boolean;
   language: LanguageCode;
   t: TranslationDictionary;
   theme: 'light' | 'dark';
@@ -103,6 +104,8 @@ const STORAGE_KEY_THEME = 'manga_portfolio_theme_v1';
 const AppContext = createContext<AppContextType | null>(null);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isBackendLoading, setIsBackendLoading] = useState<boolean>(true);
+
   // Load initial site data
   const [data, setData] = useState<SiteData>(() => {
     try {
@@ -125,24 +128,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Fetch initial site data from Backend API (Hono)
   useEffect(() => {
     async function loadBackendData() {
-      // Try backend first
-      const dbData = await fetchAllSiteDataFromBackend();
-      if (dbData) {
-        setData(prev => ({
-          ...prev,
-          ...dbData,
-          profile: dbData.profile || prev.profile,
-          systemConfig: dbData.systemConfig || prev.systemConfig,
-          projects: dbData.projects && dbData.projects.length > 0 ? dbData.projects : prev.projects,
-          techSkills: dbData.techSkills && dbData.techSkills.length > 0 ? dbData.techSkills : prev.techSkills,
-          experiences: sortExperiences(dbData.experiences && dbData.experiences.length > 0 ? dbData.experiences : prev.experiences),
-          socialLinks: dbData.socialLinks && dbData.socialLinks.length > 0 ? dbData.socialLinks : prev.socialLinks,
-          footerLinks: dbData.footerLinks && dbData.footerLinks.length > 0 ? dbData.footerLinks : prev.footerLinks,
-          mediaItems: dbData.mediaItems && dbData.mediaItems.length > 0 ? dbData.mediaItems : prev.mediaItems,
-          users: dbData.users && dbData.users.length > 0 ? dbData.users : prev.users,
-          analytics: dbData.analytics && dbData.analytics.length > 0 ? dbData.analytics : prev.analytics,
-          totalVisits: dbData.totalVisits !== undefined ? dbData.totalVisits : prev.totalVisits
-        }));
+      setIsBackendLoading(true);
+      try {
+        const dbData = await fetchAllSiteDataFromBackend();
+        if (dbData) {
+          setData(prev => ({
+            ...prev,
+            ...dbData,
+            profile: dbData.profile || prev.profile,
+            systemConfig: dbData.systemConfig || prev.systemConfig,
+            projects: dbData.projects ? dbData.projects : prev.projects,
+            techSkills: dbData.techSkills ? dbData.techSkills : prev.techSkills,
+            experiences: dbData.experiences ? sortExperiences(dbData.experiences) : prev.experiences,
+            socialLinks: dbData.socialLinks ? dbData.socialLinks : prev.socialLinks,
+            footerLinks: dbData.footerLinks ? dbData.footerLinks : prev.footerLinks,
+            mediaItems: dbData.mediaItems ? dbData.mediaItems : prev.mediaItems,
+            users: dbData.users && dbData.users.length > 0 ? dbData.users : prev.users,
+            analytics: dbData.analytics ? dbData.analytics : prev.analytics,
+            totalVisits: dbData.totalVisits !== undefined ? dbData.totalVisits : prev.totalVisits
+          }));
+        }
+      } catch (err) {
+        console.error('Failed to load site data from backend:', err);
+      } finally {
+        setIsBackendLoading(false);
       }
     }
     loadBackendData();
@@ -861,6 +870,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <AppContext.Provider
       value={{
         data,
+        isBackendLoading,
         language,
         t,
         theme,

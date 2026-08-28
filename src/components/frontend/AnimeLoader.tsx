@@ -9,24 +9,34 @@ interface AnimeLoaderProps {
 }
 
 export const AnimeLoader: React.FC<AnimeLoaderProps> = ({ isLoading }) => {
-  const { t } = useApp();
+  const { t, isBackendLoading } = useApp();
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    if (!isLoading) return;
+    if (!isLoading) {
+      setProgress(100);
+      return;
+    }
 
     const interval = setInterval(() => {
       setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
+        if (isBackendLoading) {
+          // Progress smoothly up to 88% while waiting for database response
+          if (prev >= 88) return 88;
+          return prev + Math.floor(Math.random() * 14) + 10;
+        } else {
+          // Rapidly fill to 100% when DB data is ready
+          if (prev >= 100) {
+            clearInterval(interval);
+            return 100;
+          }
+          return prev + 25;
         }
-        return prev + Math.floor(Math.random() * 18) + 12;
       });
-    }, 90);
+    }, 60);
 
     return () => clearInterval(interval);
-  }, [isLoading]);
+  }, [isLoading, isBackendLoading]);
 
   return (
     <AnimatePresence>
