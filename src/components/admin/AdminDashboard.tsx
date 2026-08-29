@@ -233,11 +233,11 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Standalone Console Navigation Tabs Row */}
-      <div className="bg-transparent flex flex-wrap gap-2 mb-6 transition-colors" id="admin-tabs-row">
+      <div className="bg-transparent flex items-center gap-2 overflow-x-auto pb-2.5 mb-4 md:mb-6 scrollbar-none sm:flex-wrap transition-colors shrink-0" id="admin-tabs-row">
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-black transition-all shrink-0 ${
             activeTab === 'profile'
               ? 'bg-black dark:bg-amber-400 text-yellow-300 dark:text-black border-2 border-black dark:border-zinc-500 shadow-[3px_3px_0px_0px_#000]'
               : 'bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black dark:border-zinc-500 shadow-[2px_2px_0px_0px_#000] hover:bg-amber-100 dark:hover:bg-slate-800'
@@ -251,7 +251,7 @@ export const AdminDashboard: React.FC = () => {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('projects')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-black transition-all shrink-0 ${
             activeTab === 'projects'
               ? 'bg-black dark:bg-amber-400 text-yellow-300 dark:text-black border-2 border-black dark:border-zinc-500 shadow-[3px_3px_0px_0px_#000]'
               : 'bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black dark:border-zinc-500 shadow-[2px_2px_0px_0px_#000] hover:bg-amber-100 dark:hover:bg-slate-800'
@@ -265,7 +265,7 @@ export const AdminDashboard: React.FC = () => {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('skills')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-black transition-all shrink-0 ${
             activeTab === 'skills'
               ? 'bg-black dark:bg-amber-400 text-yellow-300 dark:text-black border-2 border-black dark:border-zinc-500 shadow-[3px_3px_0px_0px_#000]'
               : 'bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black dark:border-zinc-500 shadow-[2px_2px_0px_0px_#000] hover:bg-amber-100 dark:hover:bg-slate-800'
@@ -279,7 +279,7 @@ export const AdminDashboard: React.FC = () => {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('experience')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-black transition-all shrink-0 ${
             activeTab === 'experience'
               ? 'bg-black dark:bg-amber-400 text-yellow-300 dark:text-black border-2 border-black dark:border-zinc-500 shadow-[3px_3px_0px_0px_#000]'
               : 'bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black dark:border-zinc-500 shadow-[2px_2px_0px_0px_#000] hover:bg-amber-100 dark:hover:bg-slate-800'
@@ -293,7 +293,7 @@ export const AdminDashboard: React.FC = () => {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('links')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-black transition-all shrink-0 ${
             activeTab === 'links'
               ? 'bg-black dark:bg-amber-400 text-yellow-300 dark:text-black border-2 border-black dark:border-zinc-500 shadow-[3px_3px_0px_0px_#000]'
               : 'bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black dark:border-zinc-500 shadow-[2px_2px_0px_0px_#000] hover:bg-amber-100 dark:hover:bg-slate-800'
@@ -307,7 +307,7 @@ export const AdminDashboard: React.FC = () => {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('media')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-black transition-all shrink-0 ${
             activeTab === 'media'
               ? 'bg-black dark:bg-amber-400 text-yellow-300 dark:text-black border-2 border-black dark:border-zinc-500 shadow-[3px_3px_0px_0px_#000]'
               : 'bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black dark:border-zinc-500 shadow-[2px_2px_0px_0px_#000] hover:bg-amber-100 dark:hover:bg-slate-800'
@@ -321,7 +321,7 @@ export const AdminDashboard: React.FC = () => {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('analytics')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-black transition-all shrink-0 ${
             activeTab === 'analytics'
               ? 'bg-black dark:bg-amber-400 text-yellow-300 dark:text-black border-2 border-black dark:border-zinc-500 shadow-[3px_3px_0px_0px_#000]'
               : 'bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black dark:border-zinc-500 shadow-[2px_2px_0px_0px_#000] hover:bg-amber-100 dark:hover:bg-slate-800'
@@ -335,7 +335,7 @@ export const AdminDashboard: React.FC = () => {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('system')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-black transition-all shrink-0 ${
             activeTab === 'system'
               ? 'bg-black dark:bg-amber-400 text-yellow-300 dark:text-black border-2 border-black dark:border-zinc-500 shadow-[3px_3px_0px_0px_#000]'
               : 'bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black dark:border-zinc-500 shadow-[2px_2px_0px_0px_#000] hover:bg-amber-100 dark:hover:bg-slate-800'
@@ -349,7 +349,7 @@ export const AdminDashboard: React.FC = () => {
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={() => setActiveTab('i18n')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all ${
+          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-black transition-all shrink-0 ${
             activeTab === 'i18n'
               ? 'bg-black dark:bg-amber-400 text-yellow-300 dark:text-black border-2 border-black dark:border-zinc-500 shadow-[3px_3px_0px_0px_#000]'
               : 'bg-white dark:bg-slate-900 text-black dark:text-white border-2 border-black dark:border-zinc-500 shadow-[2px_2px_0px_0px_#000] hover:bg-amber-100 dark:hover:bg-slate-800'
@@ -362,7 +362,7 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Main Dashboard Panel Content Box */}
-      <div className="bg-white dark:bg-slate-900 border-4 border-black dark:border-zinc-200 rounded-3xl p-6 md:p-8 shadow-[12px_12px_0px_0px_#000] dark:shadow-[12px_12px_0px_0px_#38BDF8] overflow-hidden flex flex-col transition-colors" id="admin-panel-content-box">
+      <div className="bg-white dark:bg-slate-900 border-3 sm:border-4 border-black dark:border-zinc-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-[6px_6px_0px_0px_#000] sm:shadow-[12px_12px_0px_0px_#000] dark:shadow-[6px_6px_0px_0px_#38BDF8] sm:dark:shadow-[12px_12px_0px_0px_#38BDF8] overflow-hidden flex flex-col transition-colors" id="admin-panel-content-box">
         <div className="overflow-y-auto flex-grow bg-white dark:bg-slate-900">
           {activeTab === 'profile' && <ProfileTab />}
           {activeTab === 'projects' && <ProjectsTab />}
@@ -471,13 +471,13 @@ export const AdminDashboard: React.FC = () => {
 
               <form
                 id="change-pw-form"
-                onSubmit={(e) => {
+                onSubmit={async (e) => {
                   e.preventDefault();
                   if (newPwInput !== confirmPwInput) {
                     setPwError(dbt.passwordsDoNotMatch);
                     return;
                   }
-                  const res = updatePassword(currentPwInput, newPwInput);
+                  const res = await updatePassword(currentPwInput, newPwInput);
                   if (!res.success) {
                     let errorMsg = dbt.invalidPassword;
                     if (res.messageKey) {

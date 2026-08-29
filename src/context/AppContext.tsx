@@ -58,7 +58,7 @@ interface AppContextType {
   closeAdminModal: () => void;
   loginAdmin: (password: string, username?: string) => boolean;
   logoutAdmin: () => void;
-  updatePassword: (currentPassword: string, newPassword: string) => { success: boolean; messageKey?: keyof TranslationDictionary };
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; messageKey?: keyof TranslationDictionary }>;
   setSelectedProject: (project: Project | null) => void;
   setSearchQuery: (query: string) => void;
   showToast: (msg: string) => void;
@@ -506,7 +506,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(getI18nStr('toastAdminLogout'));
   };
 
-  const updatePassword = (currentPassword: string, newPassword: string) => {
+  const updatePassword = async (currentPassword: string, newPassword: string) => {
     const activeUser = currentUser || (data?.users && data.users[0]) || undefined;
     if (!activeUser) {
       return { success: false, messageKey: 'invalidPassword' as keyof TranslationDictionary };
@@ -533,7 +533,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
     setCurrentUser(updatedActiveUser);
 
-    syncUserToBackend(updatedActiveUser);
+    try {
+      await syncUserToBackend(updatedActiveUser);
+    } catch (err) {
+      console.error('Failed to sync updated password to database:', err);
+    }
 
     showToast(getI18nStr('passwordChangedSuccess'));
     return { success: true };

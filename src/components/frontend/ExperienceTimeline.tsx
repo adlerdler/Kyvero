@@ -23,7 +23,7 @@ export const ExperienceTimeline: React.FC = () => {
         </div>
       </div>
 
-      <div className="relative border-l-3 sm:border-l-4 border-black dark:border-zinc-700 ml-3 sm:ml-4 md:ml-6 space-y-8 sm:space-y-12 pb-6 sm:pb-8">
+      <div className="relative border-l-3 sm:border-l-4 border-black dark:border-zinc-700 ml-2 sm:ml-4 md:ml-6 space-y-8 sm:space-y-12 pb-6 sm:pb-8">
         {experiences.map((exp, idx) => {
           const company = getProfileField(exp.company);
           const role = getProfileField(exp.role);
@@ -33,11 +33,11 @@ export const ExperienceTimeline: React.FC = () => {
           return (
             <motion.div 
               key={exp.id}
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -16 }}
               whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ delay: idx * 0.1, type: "spring", stiffness: 100 }}
-              className="relative pl-6 sm:pl-8 md:pl-12"
+              viewport={{ amount: 0.01, once: true }}
+              transition={{ delay: Math.min(idx * 0.08, 0.2), type: "spring", stiffness: 100 }}
+              className="relative pl-4 sm:pl-8 md:pl-12"
             >
               {/* Timeline Node */}
               <div className="absolute -left-[13px] sm:-left-[14px] top-1.5 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-rose-500 border-3 sm:border-4 border-white dark:border-zinc-900 shadow-[0_0_0_2px_#000] dark:shadow-[0_0_0_2px_#3f3f46] z-10 flex items-center justify-center">

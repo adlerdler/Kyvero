@@ -131,10 +131,10 @@ function MainLayout() {
               {/* SECTION 1: MangaHero */}
               <section id="section-hero">
                 <motion.div
-                  initial={{ opacity: 0, y: 30, scale: 0.98 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  viewport={{ amount: 0.2, once: false }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ amount: 0.01, once: true }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <MangaHero />
                 </motion.div>
@@ -143,10 +143,10 @@ function MainLayout() {
               {/* SECTION 2: SkillProgressBar */}
               <section id="section-skills">
                 <motion.div
-                  initial={{ opacity: 0, y: 30, scale: 0.98 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  viewport={{ amount: 0.2, once: false }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ amount: 0.01, once: true }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <SkillProgressBar />
                 </motion.div>
@@ -155,10 +155,10 @@ function MainLayout() {
               {/* SECTION 2.5: ExperienceTimeline */}
               <section id="section-experience">
                 <motion.div
-                  initial={{ opacity: 0, y: 30, scale: 0.98 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  viewport={{ amount: 0.2, once: false }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ amount: 0.01, once: true }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <ExperienceTimeline />
                 </motion.div>
@@ -167,10 +167,10 @@ function MainLayout() {
               {/* SECTION 3: ProjectsGrid */}
               <section id="section-projects">
                 <motion.div
-                  initial={{ opacity: 0, y: 30, scale: 0.98 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  viewport={{ amount: 0.15, once: false }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ amount: 0.01, once: true }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <ProjectsGrid />
                 </motion.div>
@@ -179,10 +179,10 @@ function MainLayout() {
               {/* SECTION 4: BlogSocialSection */}
               <section id="section-social" className="space-y-10">
                 <motion.div
-                  initial={{ opacity: 0, y: 30, scale: 0.98 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  viewport={{ amount: 0.15, once: false }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ amount: 0.01, once: true }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                   className="w-full"
                 >
                   <BlogSocialSection />

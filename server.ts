@@ -25,9 +25,9 @@ async function startServer() {
   // Dynamic import apiApp AFTER environment variables are guaranteed to be loaded
   const { default: apiApp } = await import('./src/api/app');
 
-  // Integration: Hono as a middleware in Express
-  app.all('/api/*', async (req, res) => {
-    // Basic bridge for API routes
+  // Integration: Hono as a middleware in Express for API & Root SEO/LLM endpoints
+  const honoBridge = async (req: express.Request, res: express.Response) => {
+    // Basic bridge for API routes and root SEO/LLM routes
     const headers = new Headers();
     const sensitiveHeaders = ['apikey', 'authorization', 'content-length'];
     
@@ -39,7 +39,9 @@ async function startServer() {
     });
 
     try {
-      const webReq = new Request(`http://${req.headers.host}${req.url}`, {
+      // Map root endpoints (/llm.txt, /sitemap.xml, etc.) to Hono's .basePath('/api') routes
+      const targetPath = req.url.startsWith('/api/') ? req.url : `/api${req.url}`;
+      const webReq = new Request(`http://${req.headers.host}${targetPath}`, {
         method: req.method,
         headers: headers,
         body: ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) ? JSON.stringify(req.body) : undefined
@@ -56,7 +58,9 @@ async function startServer() {
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
-  });
+  };
+
+  app.all(['/api/*', '/sitemap.xml', '/robots.txt', '/llm.txt', '/llms.txt'], honoBridge);
 
   if (!isProd) {
     const vite = await createViteServer({

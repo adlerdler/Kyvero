@@ -293,25 +293,25 @@ export const ProjectsTab: React.FC = () => {
                     {t.projectImageUrl}
                   </label>
                   <div className="flex flex-col gap-2">
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <input
                         type="text"
                         value={projectForm.imageUrl}
                         onChange={e => setProjectForm({ ...projectForm, imageUrl: e.target.value })}
-                        className="flex-1 bg-white dark:bg-slate-900 border-2 border-black dark:border-zinc-300 p-2.5 rounded-xl text-xs font-bold text-black dark:text-white"
+                        className="flex-1 bg-white dark:bg-slate-900 border-2 border-black dark:border-zinc-300 p-2.5 rounded-xl text-xs font-bold text-black dark:text-white min-w-0"
                         placeholder={dbt.avatarInputPlaceholder}
                       />
                       <button
                         type="button"
                         onClick={() => setShowProjectMediaSelector(true)}
-                        className="bg-cyan-200 text-black border-2 border-black px-3.5 py-2 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] hover:bg-cyan-300 transition-colors flex items-center gap-1.5 shrink-0"
+                        className="bg-cyan-200 text-black border-2 border-black px-3.5 py-2 rounded-xl text-xs font-black shadow-[2px_2px_0px_0px_#000] hover:bg-cyan-300 transition-colors flex items-center justify-center gap-1.5 shrink-0"
                       >
                         <ImageIcon className="w-3.5 h-3.5" />
                         <span>{dbt.avatarSelectFromMedia}</span>
                       </button>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-extrabold text-zinc-600 dark:text-zinc-400">Preset SVG Covers:</span>
+                    <div className="flex items-center flex-wrap gap-2">
+                      <span className="text-[11px] font-extrabold text-zinc-600 dark:text-zinc-400">Preset Covers:</span>
                       <button
                         type="button"
                         onClick={() => setProjectForm({ ...projectForm, imageUrl: PROJECT_1_SVG })}

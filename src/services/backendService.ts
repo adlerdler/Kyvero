@@ -368,9 +368,11 @@ export async function syncUserToBackend(user: User) {
   const payload = {
     id: user.id,
     username: user.username,
-    email: user.email,
+    name: user.name || user.username || 'Admin',
+    avatar: user.avatar || '',
+    email: user.email || '',
     password: user.password,
-    role: user.role
+    role: user.role || 'Administrator'
   };
   const res = await fetch(`${API_BASE}/users`, {
     method: 'POST',

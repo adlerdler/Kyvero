@@ -18,15 +18,6 @@ export const BlogSocialSection: React.FC = () => {
   const { data, t } = useApp();
   const { socialLinks } = data;
 
-  const [isLoading, setIsLoading] = useState(true);
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, []);
-
   const getIcon = (type: string) => {
     switch (type) {
       case 'github':
@@ -106,38 +97,19 @@ export const BlogSocialSection: React.FC = () => {
         </div>
 
         {/* Differentiated Cyber Comm Channel Strip Grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 sm:gap-4">
-            {[1, 2, 3, 4].map((n) => (
-              <div
-                key={n}
-                className="bg-zinc-50 dark:bg-slate-950 border-2 border-black dark:border-zinc-300 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 shadow-[3px_3px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] sm:dark:shadow-[4px_4px_0px_0px_#38BDF8] animate-pulse flex items-center justify-between gap-4"
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 sm:gap-4">
+          {socialLinks.map((link: SocialLink, index: number) => {
+            return (
+              <motion.div
+                key={link.id}
+                initial={{ opacity: 0, x: -12 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ amount: 0.01, once: true }}
+                transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.15) }}
+                className={`group relative bg-zinc-50 dark:bg-slate-950 border-2 border-black dark:border-zinc-200 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 shadow-[3px_3px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] sm:dark:shadow-[4px_4px_0px_0px_#38BDF8] hover:shadow-[5px_5px_0px_0px_#000] sm:hover:shadow-[6px_6px_0px_0px_#000] dark:hover:shadow-[5px_5px_0px_0px_#38BDF8] sm:dark:hover:shadow-[6px_6px_0px_0px_#38BDF8] transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 ${
+                  link.isPrimary ? 'ring-2 ring-amber-400/80 dark:ring-amber-400/50' : ''
+                }`}
               >
-                <div className="flex items-center gap-3.5 flex-1">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-zinc-200 dark:bg-slate-800 rounded-xl border-2 border-black shrink-0" />
-                  <div className="space-y-2 flex-1">
-                    <div className="w-1/2 h-4 bg-zinc-200 dark:bg-slate-800 rounded border border-black" />
-                    <div className="w-3/4 h-3 bg-zinc-200 dark:bg-slate-800 rounded" />
-                  </div>
-                </div>
-                <div className="w-20 h-8 bg-cyan-200 dark:bg-cyan-900 rounded-xl border border-black shrink-0" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 sm:gap-4">
-            {socialLinks.map((link: SocialLink, index: number) => {
-              return (
-                <motion.div
-                  key={link.id}
-                  initial={{ opacity: 0, x: -12 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.35, delay: index * 0.05 }}
-                  className={`group relative bg-zinc-50 dark:bg-slate-950 border-2 border-black dark:border-zinc-200 rounded-xl sm:rounded-2xl p-3.5 sm:p-4 shadow-[3px_3px_0px_0px_#000] sm:shadow-[4px_4px_0px_0px_#000] dark:shadow-[3px_3px_0px_0px_#38BDF8] sm:dark:shadow-[4px_4px_0px_0px_#38BDF8] hover:shadow-[5px_5px_0px_0px_#000] sm:hover:shadow-[6px_6px_0px_0px_#000] dark:hover:shadow-[5px_5px_0px_0px_#38BDF8] sm:dark:hover:shadow-[6px_6px_0px_0px_#38BDF8] transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 ${
-                    link.isPrimary ? 'ring-2 ring-amber-400/80 dark:ring-amber-400/50' : ''
-                  }`}
-                >
                   {/* Left: Icon & Detail */}
                   <div className="flex items-center gap-3 sm:gap-3.5 min-w-0 flex-1 w-full sm:w-auto">
                     <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-2 flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000] transition-transform group-hover:scale-105 ${getChannelBadgeTheme(link.type)}`}>
@@ -164,7 +136,7 @@ export const BlogSocialSection: React.FC = () => {
                         )}
                       </div>
 
-                      <p className="text-[11px] sm:text-xs font-mono font-extrabold text-zinc-500 dark:text-zinc-400 truncate max-w-[220px] xs:max-w-[260px] sm:max-w-[240px] md:max-w-[280px]">
+                      <p className="text-[11px] sm:text-xs font-mono font-extrabold text-zinc-500 dark:text-zinc-400 truncate max-w-[160px] xs:max-w-[240px] sm:max-w-[240px] md:max-w-[280px]">
                         {link.url}
                       </p>
                     </div>
@@ -187,7 +159,6 @@ export const BlogSocialSection: React.FC = () => {
               );
             })}
           </div>
-        )}
       </div>
     </motion.section>
   );

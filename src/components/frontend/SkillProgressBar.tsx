@@ -73,7 +73,7 @@ export const SkillProgressBar: React.FC = () => {
           </div>
 
           {/* Category Filter Pills */}
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1 sm:mx-0 sm:px-0 sm:flex-wrap shrink-0">
             {categories.map((cat) => {
               const IconComp = cat.icon;
               const isActive = activeCategory === cat.key;
@@ -81,7 +81,7 @@ export const SkillProgressBar: React.FC = () => {
                 <button
                   key={cat.key}
                   onClick={() => setActiveCategory(cat.key)}
-                  className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-black border-2 transition-all cursor-pointer min-h-[32px] sm:min-h-[36px] ${
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[11px] sm:text-xs font-black border-2 transition-all cursor-pointer min-h-[32px] sm:min-h-[36px] shrink-0 ${
                     isActive
                       ? 'bg-black dark:bg-amber-400 text-yellow-300 dark:text-black border-black dark:border-zinc-100 shadow-[2px_2px_0px_0px_#000] dark:shadow-[2px_2px_0px_0px_#38BDF8] scale-105'
                       : 'bg-zinc-100 dark:bg-slate-800 text-zinc-800 dark:text-zinc-200 border-black dark:border-zinc-300 hover:bg-zinc-200 dark:hover:bg-slate-700'

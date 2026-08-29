@@ -79,11 +79,11 @@ export const MangaHero: React.FC = () => {
               <motion.div
                 animate={{ y: [0, -3, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -bottom-3 inset-x-1 sm:inset-x-2 bg-yellow-300 dark:bg-amber-400 border-2 border-black rounded-lg px-2 sm:px-2.5 py-0.5 sm:py-1 text-center shadow-[2px_2px_0px_0px_#000]"
+                className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-[92%] bg-yellow-300 dark:bg-amber-400 border-2 border-black rounded-lg px-2 sm:px-2.5 py-0.5 sm:py-1 text-center shadow-[2px_2px_0px_0px_#000]"
               >
-                <span className="font-extrabold text-[10px] sm:text-[11px] text-black tracking-tight flex items-center justify-center gap-1 truncate">
+                <span className="font-extrabold text-[10px] sm:text-[11px] text-black tracking-tight flex items-center justify-center gap-1">
                   <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-black text-black shrink-0" />
-                  <span className="truncate">{getProfileField(profile.statusText)}</span>
+                  <span className="truncate max-w-[130px] xs:max-w-[170px] sm:max-w-none">{getProfileField(profile.statusText)}</span>
                 </span>
               </motion.div>
             </div>
@@ -143,10 +143,10 @@ export const MangaHero: React.FC = () => {
                   key={idx}
                   whileHover={{ x: 4 }}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  className="bg-zinc-50 dark:bg-slate-950 border-2 border-black dark:border-zinc-300 p-2.5 sm:p-3 rounded-xl shadow-[2.5px_2.5px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] dark:shadow-[2.5px_2.5px_0px_0px_#38BDF8] sm:dark:shadow-[3px_3px_0px_0px_#38BDF8] flex items-start gap-2.5 text-xs sm:text-sm font-extrabold text-zinc-900 dark:text-zinc-100 transition-colors leading-relaxed"
+                  className="bg-zinc-50 dark:bg-slate-950 border-2 border-black dark:border-zinc-300 p-2.5 sm:p-3 rounded-xl shadow-[2.5px_2.5px_0px_0px_#000] sm:shadow-[3px_3px_0px_0px_#000] dark:shadow-[2.5px_2.5px_0px_0px_#38BDF8] sm:dark:shadow-[3px_3px_0px_0px_#38BDF8] flex items-start gap-2.5 text-xs sm:text-sm font-extrabold text-zinc-900 dark:text-zinc-100 transition-colors leading-relaxed break-words min-w-0"
                 >
                   <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 fill-amber-300 shrink-0 mt-0.5" />
-                  <span>{line}</span>
+                  <span className="break-words min-w-0 flex-1">{line}</span>
                 </motion.div>
               ))}
             </motion.div>

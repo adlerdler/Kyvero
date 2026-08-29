@@ -50,8 +50,8 @@ export const Header: React.FC = () => {
             </motion.div>
           </div>
 
-          <div className="min-w-0 flex-1">
-            <h1 className="font-black text-base sm:text-xl md:text-2xl text-black dark:text-white tracking-tight font-mono truncate transition-colors">
+          <div className="min-w-0 flex-1 max-w-[140px] xs:max-w-[200px] sm:max-w-none">
+            <h1 className="font-black text-sm sm:text-xl md:text-2xl text-black dark:text-white tracking-tight font-mono truncate transition-colors">
               <span>{data.systemConfig?.siteTitle || data.profile.siteTitle || data.profile.name}</span>
             </h1>
           </div>

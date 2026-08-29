@@ -1,0 +1,31 @@
+# Kyvero Portfolio & Multi-Dimensional Analytics Console
+
+> Modern Neo-Brutalist Full-Stack Web Application & Visitor Intelligence Engine.
+
+## Project Overview
+Kyvero is a high-performance portfolio system featuring a Neo-Brutalist design aesthetic. It integrates real-time visitor analytics, global traffic radar, and a comprehensive administration console.
+
+## Architecture
+- **Frontend**: React 18, Vite, Tailwind CSS, Motion (Animations), D3.js (Data Visualization).
+- **Backend**: Hono (Edge-ready Framework) running on Node.js.
+- **Database**: Supabase (PostgreSQL) for persistent data and analytics.
+- **Media**: Cloudinary CDN for optimized asset hosting.
+- **I18N**: Professional dictionary-based support for zh-CN, zh-TW, en, ja, ko.
+
+## Key Features
+- **Analytics Radar**: Real-time visitor tracking with GeoHash mapping and node latency monitoring.
+- **Heatmap Matrix**: D3-powered 181-day visitor activity visualization.
+- **Admin Console**: Secure /admin dashboard for full site management (CRUD).
+- **Auto-Translation**: Integrated DeepL server-side translation for content.
+- **SEO Ready**: Dynamic sitemap.xml and robots.txt generation.
+
+## Navigation
+- [Homepage](https://kyvero.app/) - Main portfolio and analytics dashboard.
+- [Admin Panel](https://kyvero.app/admin) - Management console (Password protected).
+- [Sitemap](https://kyvero.app/sitemap.xml) - Search engine indexing data.
+
+## License
+Custom MIT License with Mandatory Attribution Clause.
+
+---
+Generated for LLM context. Version: 2.0.0
