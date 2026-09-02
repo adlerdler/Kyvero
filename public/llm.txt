@@ -20,9 +20,8 @@ Kyvero is a high-performance portfolio system featuring a Neo-Brutalist design a
 - **SEO Ready**: Dynamic sitemap.xml and robots.txt generation.
 
 ## Navigation
-- [Homepage](https://kyvero.app/) - Main portfolio and analytics dashboard.
-- [Admin Panel](https://kyvero.app/admin) - Management console (Password protected).
-- [Sitemap](https://kyvero.app/sitemap.xml) - Search engine indexing data.
+- [Homepage](https://adlerian.xyz/) - Main portfolio and analytics dashboard.
+- [Sitemap](https://adlerian.xyz/sitemap.xml) - Search engine indexing data.
 
 ## License
 Custom MIT License with Mandatory Attribution Clause.
